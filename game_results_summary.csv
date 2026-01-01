@@ -1,0 +1,4 @@
+game_id,timestamp,player_red,player_blue,player_white,player_orange,winner,winner_vp,red_vp,blue_vp,white_vp,orange_vp,total_cost_usd,total_tokens,duration_minutes,total_moves,cost_per_move,tokens_per_move
+game_1_all_haiku,2025-12-31_230356,Claude 3 Haiku,Claude 3 Haiku,Claude 3 Haiku,Claude 3 Haiku,ORANGE,11,6,3,2,11,0.2885,477145,114,752,0.000384,634.5
+game_2_mixed_models,2025-12-31_230455,Claude 3.5 Sonnet,GPT-4 Turbo,Claude 3 Haiku,Claude 3 Haiku,BLUE,10,2,10,5,6,1.6084,225486,26,372,0.004324,606.2
+game_3_clean_test,2025-12-31_220945,Claude 3 Haiku,Claude 3 Haiku,Claude 3 Haiku,Claude 3 Haiku,BLUE,11,3,11,2,5,0.2011,329517,19.5,N/A,N/A,N/A

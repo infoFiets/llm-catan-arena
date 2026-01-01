@@ -1,8 +1,12 @@
 # Game engine
 catanatron>=0.6.0
 
-# Our utilities
-git+https://github.com/infoFiets/llm-game-utils.git
+# Our utilities (install from local path)
+-e ../llm-game-utils
+
+# Configuration
+pyyaml>=6.0
+python-dotenv>=1.0.0
 
 # Analysis
 pandas>=2.0.0

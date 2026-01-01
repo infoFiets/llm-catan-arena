@@ -1,0 +1,32 @@
+{
+  "session_id": "Settlers of Catan_20251231_150702",
+  "game_name": "Settlers of Catan",
+  "players": [
+    "haiku:RED",
+    "haiku:BLUE",
+    "haiku:WHITE",
+    "haiku:ORANGE"
+  ],
+  "game_config": {
+    "player_models": [
+      "haiku",
+      "haiku",
+      "haiku",
+      "haiku"
+    ],
+    "max_turns": 500,
+    "victory_points": 10
+  },
+  "start_time": "2025-12-31T15:07:02.291220",
+  "end_time": "2025-12-31T16:00:45.445417",
+  "moves": [],
+  "llm_responses": [],
+  "winner": "haiku:WHITE",
+  "final_scores": {
+    "Claude 3 Haiku:RED": 5,
+    "Claude 3 Haiku:BLUE": 3,
+    "Claude 3 Haiku:WHITE": 10,
+    "Claude 3 Haiku:ORANGE": 6
+  },
+  "metadata": {}
+}
