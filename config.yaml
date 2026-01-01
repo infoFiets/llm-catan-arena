@@ -1,0 +1,71 @@
+# LLM Model Configurations for Catan Arena
+# Model IDs must match OpenRouter's API model identifiers
+
+models:
+  claude:
+    model_id: "anthropic/claude-3.5-sonnet"
+    name: "Claude 3.5 Sonnet"
+    temperature: 0.7
+    max_tokens: 1000
+    input_cost: 0.003   # per 1K tokens
+    output_cost: 0.015  # per 1K tokens
+
+  gpt4:
+    model_id: "openai/gpt-4-turbo"
+    name: "GPT-4 Turbo"
+    temperature: 0.7
+    max_tokens: 1000
+    input_cost: 0.01    # per 1K tokens
+    output_cost: 0.03   # per 1K tokens
+
+  gemini:
+    model_id: "google/gemini-pro"
+    name: "Gemini Pro"
+    temperature: 0.7
+    max_tokens: 1000
+    input_cost: 0.00125  # per 1K tokens
+    output_cost: 0.005   # per 1K tokens
+
+  haiku:
+    model_id: "anthropic/claude-3-haiku"
+    name: "Claude 3 Haiku"
+    temperature: 0.7
+    max_tokens: 1000
+    input_cost: 0.00025  # per 1K tokens
+    output_cost: 0.00125 # per 1K tokens
+
+# Game Configuration
+game:
+  num_players: 4
+  max_turns: 500
+  log_level: "INFO"
+
+  # Victory points needed to win (standard Catan is 10)
+  victory_points: 10
+
+  # Enable/disable game features
+  enable_trading: true
+  enable_robber: true
+
+# Logging Configuration
+logging:
+  output_dir: "data/games"
+  save_full_prompts: true
+  save_game_states: true
+
+# OpenRouter Configuration
+openrouter:
+  app_name: "LLM Catan Arena"
+  site_url: "https://github.com/infoFiets/llm-catan-arena"
+
+# Tournament Configuration
+tournament:
+  default_games: 5
+  parallel_games: 1  # Number of games to run simultaneously
+
+  # Which model combinations to test
+  # Format: [player1, player2, player3, player4]
+  matchups:
+    - ["claude", "gpt4", "gemini", "haiku"]
+    - ["claude", "claude", "gpt4", "gpt4"]
+    - ["gemini", "gemini", "gemini", "haiku"]
