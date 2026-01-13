@@ -2,12 +2,13 @@
 Player implementations for LLM Catan Arena.
 
 Exports all player types for easy import.
+Supports both text-based (prompt/response) and MCP-based (tool calling) modes.
 """
 
-from .base_player import BaseLLMPlayer
-from .claude_player import ClaudePlayer
-from .gpt_player import GPTPlayer
-from .gemini_player import GeminiPlayer
+# Text-based players
+from .text_based import BaseLLMPlayer, ClaudePlayer, GPTPlayer, GeminiPlayer
+
+# Baseline player
 from .random_player import RandomPlayer
 
 __all__ = [
