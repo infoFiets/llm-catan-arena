@@ -176,7 +176,7 @@ class ActionMapper:
             try:
                 # Fallback to class name
                 return type(action).__name__
-            except:
+            except Exception:
                 return "Action"
 
     def _get_action_type(self, action: Any) -> str:
