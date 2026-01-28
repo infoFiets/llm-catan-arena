@@ -21,24 +21,26 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 from src.game_runner import CatanGameRunner
 from src.analysis import CatanAnalyzer
+from src.elo import EloRating
 
 # Load environment variables
 load_dotenv()
 
 
-def run_tournament(num_games: int = None, config_path: str = "config.yaml"):
+def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode: str = "text"):
     """
     Run a full tournament using configuration file.
 
     Args:
         num_games: Number of times to run each matchup
         config_path: Path to configuration file
+        mode: Player mode ("text" or "mcp")
     """
     print("=" * 60)
-    print("LLM CATAN ARENA - TOURNAMENT MODE")
+    print(f"LLM CATAN ARENA - TOURNAMENT MODE ({mode.upper()})")
     print("=" * 60)
 
-    runner = CatanGameRunner(config_path)
+    runner = CatanGameRunner(config_path, mode=mode)
     results = runner.run_tournament(num_games=num_games)
 
     print("\n" + "=" * 60)
@@ -50,14 +52,20 @@ def run_tournament(num_games: int = None, config_path: str = "config.yaml"):
     analyzer = CatanAnalyzer()
     analyzer.print_report(results)
 
+    # Show Elo leaderboard
+    print("\n")
+    elo = EloRating()
+    print(elo.format_leaderboard())
 
-def run_single_game(players: list, config_path: str = "config.yaml"):
+
+def run_single_game(players: list, config_path: str = "config.yaml", mode: str = "text"):
     """
     Run a single game with specified players.
 
     Args:
         players: List of 4 model keys (e.g., ['claude', 'gpt4', 'gemini', 'haiku'])
         config_path: Path to configuration file
+        mode: Player mode ("text" or "mcp")
     """
     if len(players) != 4:
         print("Error: Exactly 4 players required!")
@@ -65,11 +73,11 @@ def run_single_game(players: list, config_path: str = "config.yaml"):
         sys.exit(1)
 
     print("=" * 60)
-    print("LLM CATAN ARENA - SINGLE GAME MODE")
+    print(f"LLM CATAN ARENA - SINGLE GAME MODE ({mode.upper()})")
     print("=" * 60)
     print(f"Players: {players}\n")
 
-    runner = CatanGameRunner(config_path)
+    runner = CatanGameRunner(config_path, mode=mode)
     result = runner.run_game(players)
 
     print("\n" + "=" * 60)
@@ -79,6 +87,14 @@ def run_single_game(players: list, config_path: str = "config.yaml"):
     print(f"Scores: {result['scores']}")
     print(f"Total Cost: ${result['total_cost']:.4f}")
     print(f"Total Tokens: {result['total_tokens']}")
+
+    # Show Elo changes if available
+    if "elo_changes" in result and result["elo_changes"]:
+        print("\nElo Rating Changes:")
+        for player_id, change in sorted(result["elo_changes"].items(), key=lambda x: -x[1]["new"]):
+            change_str = f"+{change['change']:.1f}" if change['change'] >= 0 else f"{change['change']:.1f}"
+            print(f"  {player_id}: {change['old']:.0f} -> {change['new']:.0f} ({change_str})")
+
     print("=" * 60)
 
 
@@ -135,17 +151,24 @@ def main():
         help='Path to configuration file (default: config.yaml)'
     )
 
+    parser.add_argument(
+        '--mode',
+        choices=['text', 'mcp'],
+        default='text',
+        help='Player mode: text (prompt/response) or mcp (tool calling)'
+    )
+
     args = parser.parse_args()
 
     # Determine mode
     if args.analyze:
         run_analysis()
     elif args.single_game:
-        run_single_game(args.single_game, args.config)
+        run_single_game(args.single_game, args.config, args.mode)
     else:
         # Tournament mode
         num_games = args.games
-        run_tournament(num_games, args.config)
+        run_tournament(num_games, args.config, args.mode)
 
 
 if __name__ == "__main__":

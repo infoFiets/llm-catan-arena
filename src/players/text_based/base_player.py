@@ -13,7 +13,7 @@ from typing import List, Any, Dict
 from catanatron.models.player import Player
 from llm_game_utils import GameResultLogger
 
-from ..prompt_builder import CatanPromptBuilder
+from ...prompt_builder import CatanPromptBuilder
 
 
 class BaseLLMPlayer(Player, ABC):

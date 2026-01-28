@@ -12,7 +12,9 @@ import yaml
 from catanatron.game import Game
 from llm_game_utils import OpenRouterClient, GameResultLogger
 
-from .players import ClaudePlayer, GPTPlayer, GeminiPlayer, RandomPlayer
+from .players.text_based import ClaudePlayer, GPTPlayer, GeminiPlayer
+from .players import RandomPlayer
+from .elo import EloRating
 
 # Define available colors (strings in Catanatron 3.x)
 COLORS = ["RED", "BLUE", "WHITE", "ORANGE"]
@@ -29,13 +31,15 @@ class CatanGameRunner:
     - Statistics tracking
     """
 
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config_path: str = "config.yaml", mode: str = "text"):
         """
         Initialize game runner.
 
         Args:
             config_path: Path to configuration YAML file
+            mode: "text" for text-based players, "mcp" for MCP-based players
         """
+        self.mode = mode
         self.config = self._load_config(config_path)
         self.logger = GameResultLogger(
             output_dir=self.config["logging"]["output_dir"]
@@ -47,8 +51,9 @@ class CatanGameRunner:
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         self.log = logging.getLogger(__name__)
+        self.log.info(f"Initializing game runner in {mode} mode")
 
-        # Initialize OpenRouter client
+        # Initialize OpenRouter client (for text mode)
         self.client = OpenRouterClient(
             app_name=self.config["openrouter"]["app_name"],
             site_url=self.config["openrouter"]["site_url"]
@@ -56,6 +61,21 @@ class CatanGameRunner:
 
         # Register model configurations
         self._register_models()
+
+        # Initialize MCP server if in MCP mode
+        if self.mode == "mcp":
+            from .mcp.server import CatanatronMCPServer
+            self.mcp_server = CatanatronMCPServer("catan_arena")
+            self.log.info("MCP server initialized")
+        else:
+            self.mcp_server = None
+
+        # Initialize Elo rating system
+        self.elo = EloRating(
+            ratings_file=self.config.get("elo", {}).get("ratings_file", "data/elo_ratings.json"),
+            k_factor=self.config.get("elo", {}).get("k_factor", 32)
+        )
+        self.track_elo = self.config.get("elo", {}).get("enabled", True)
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -95,6 +115,22 @@ class CatanGameRunner:
         if not model_config:
             raise ValueError(f"Unknown model key: {model_key}")
 
+        # Route based on mode
+        if self.mode == "text":
+            return self._create_text_player(model_key, model_config, color, session_id)
+        elif self.mode == "mcp":
+            return self._create_mcp_player(model_key, model_config, color, session_id)
+        else:
+            raise ValueError(f"Unknown mode: {self.mode}")
+
+    def _create_text_player(
+        self,
+        model_key: str,
+        model_config: dict,
+        color: str,
+        session_id: str
+    ):
+        """Create text-based player."""
         # Determine player class based on model
         if "claude" in model_key.lower() or "haiku" in model_key.lower() or "sonnet" in model_key.lower():
             return ClaudePlayer(
@@ -123,6 +159,38 @@ class CatanGameRunner:
         else:
             # Default to random player for unknown models
             self.log.warning(f"Unknown model type for {model_key}, using RandomPlayer")
+            return RandomPlayer(color=color)
+
+    def _create_mcp_player(
+        self,
+        model_key: str,
+        model_config: dict,
+        color: str,
+        session_id: str
+    ):
+        """Create MCP-based player."""
+        import os
+
+        if "claude" in model_key.lower() or "haiku" in model_key.lower() or "sonnet" in model_key.lower():
+            from .players.mcp_based import MCPClaudePlayer
+            return MCPClaudePlayer(
+                color=color,
+                model_config=model_config,
+                session_id=session_id,
+                logger=self.logger,
+                mcp_server=self.mcp_server,
+                anthropic_api_key=os.getenv("ANTHROPIC_API_KEY")
+            )
+        elif "gpt" in model_key.lower():
+            # TODO: Implement MCPGPTPlayer
+            self.log.warning("GPT MCP player not yet implemented, using text-based")
+            return self._create_text_player(model_key, model_config, color, session_id)
+        elif "gemini" in model_key.lower():
+            # TODO: Implement MCPGeminiPlayer
+            self.log.warning("Gemini MCP player not yet implemented, using text-based")
+            return self._create_text_player(model_key, model_config, color, session_id)
+        else:
+            self.log.warning(f"Unknown model key '{model_key}', using RandomPlayer")
             return RandomPlayer(color=color)
 
     def run_game(self, player_models: List[str], game_id: str = None) -> Dict[str, Any]:
@@ -213,9 +281,34 @@ class CatanGameRunner:
                 "full_summary": summary
             }
 
+            # Update Elo ratings
+            elo_changes = {}
+            if self.track_elo:
+                # Create scores dict with mode-aware player IDs
+                elo_scores = {}
+                for player_key, vp in scores.items():
+                    # player_key is like "Claude 3.5 Sonnet:RED"
+                    # We want to track by model_key-mode, e.g., "claude-text" or "claude-mcp"
+                    color = player_key.split(":")[-1]
+                    color_idx = colors.index(color)
+                    model_key = player_models[color_idx]
+                    player_id = f"{model_key}-{self.mode}"
+                    elo_scores[player_id] = vp
+
+                elo_changes = self.elo.update_ratings(
+                    {"scores": elo_scores},
+                    session_id=session_id
+                )
+                results["elo_changes"] = elo_changes
+
             self.log.info(f"Game {session_id} completed. Winner: {winner_model}")
             self.log.info(f"Scores: {scores}")
             self.log.info(f"Total cost: ${total_cost:.4f}, Total tokens: {total_tokens}")
+
+            if elo_changes:
+                for player_id, change in elo_changes.items():
+                    change_str = f"+{change['change']:.1f}" if change['change'] >= 0 else f"{change['change']:.1f}"
+                    self.log.info(f"Elo: {player_id} {change['old']:.0f} -> {change['new']:.0f} ({change_str})")
 
             return results
 
