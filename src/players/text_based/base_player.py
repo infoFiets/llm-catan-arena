@@ -53,7 +53,7 @@ class BaseLLMPlayer(Player, ABC):
         self.session_id = session_id
         self.logger = logger
         self.prompt_format = prompt_format
-        self.prompt_builder = CatanPromptBuilder(format=prompt_format)
+        self.prompt_builder = CatanPromptBuilder(prompt_format=prompt_format)
         self.recent_moves = []
         self.total_cost = 0.0
         self.total_tokens = 0

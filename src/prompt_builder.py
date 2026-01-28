@@ -11,7 +11,7 @@ Supports multiple formats for token efficiency:
 """
 
 import json
-from typing import List, Dict, Any, Literal
+from typing import List, Dict, Any, Literal, Optional
 from llm_game_utils import PromptFormatter
 
 # Type alias for format options
@@ -21,15 +21,15 @@ PromptFormat = Literal["json", "json-minified", "toon"]
 class CatanPromptBuilder:
     """Builds prompts for LLM players in Settlers of Catan."""
 
-    def __init__(self, format: PromptFormat = "json"):
+    def __init__(self, prompt_format: PromptFormat = "json"):
         """
         Initialize the prompt builder with PromptFormatter.
 
         Args:
-            format: Prompt format - "json", "json-minified", or "toon"
+            prompt_format: Prompt format - "json", "json-minified", or "toon"
         """
         self.formatter = PromptFormatter()
-        self.format = format
+        self.prompt_format = prompt_format
 
     def build_action_prompt(
         self,
@@ -37,7 +37,7 @@ class CatanPromptBuilder:
         player_state: Dict[str, Any],
         available_actions: List[Any],
         recent_moves: List[str] = None,
-        format: PromptFormat = None
+        prompt_format: Optional[PromptFormat] = None
     ) -> str:
         """
         Build a prompt for an LLM to choose an action in Catan.
@@ -47,13 +47,13 @@ class CatanPromptBuilder:
             player_state: Dictionary with player's current state
             available_actions: List of available Catanatron actions
             recent_moves: Optional list of recent moves for context
-            format: Override format for this call (uses instance default if None)
+            prompt_format: Override format for this call (uses instance default if None)
 
         Returns:
             Formatted prompt string ready for LLM
         """
         # Use provided format or fall back to instance default
-        active_format = format or self.format
+        active_format = prompt_format or self.prompt_format
 
         # Extract and format game state
         state_dict = self._extract_state_dict(game_state, player_state)
