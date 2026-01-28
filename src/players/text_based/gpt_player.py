@@ -21,7 +21,8 @@ class GPTPlayer(BaseLLMPlayer):
         client: OpenRouterClient,
         model_config: dict,
         session_id: str = None,
-        logger: GameResultLogger = None
+        logger: GameResultLogger = None,
+        prompt_format: str = "json"
     ):
         """
         Initialize GPT player.
@@ -33,9 +34,10 @@ class GPTPlayer(BaseLLMPlayer):
                          (model_id, name, temperature, max_tokens)
             session_id: Optional session ID for logging
             logger: Optional GameResultLogger instance
+            prompt_format: Prompt format - "json", "json-minified", or "toon"
         """
         model_name = model_config.get("name", "GPT-4")
-        super().__init__(color, model_name, session_id, logger)
+        super().__init__(color, model_name, session_id, logger, prompt_format=prompt_format)
 
         self.client = client
         self.model_id = model_config["model_id"]

@@ -27,7 +27,7 @@ from src.elo import EloRating
 load_dotenv()
 
 
-def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode: str = "text"):
+def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json"):
     """
     Run a full tournament using configuration file.
 
@@ -35,12 +35,13 @@ def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode
         num_games: Number of times to run each matchup
         config_path: Path to configuration file
         mode: Player mode ("text" or "mcp")
+        prompt_format: Prompt format - "json", "json-minified", or "toon"
     """
     print("=" * 60)
-    print(f"LLM CATAN ARENA - TOURNAMENT MODE ({mode.upper()})")
+    print(f"LLM CATAN ARENA - TOURNAMENT MODE ({mode.upper()}, format={prompt_format})")
     print("=" * 60)
 
-    runner = CatanGameRunner(config_path, mode=mode)
+    runner = CatanGameRunner(config_path, mode=mode, prompt_format=prompt_format)
     results = runner.run_tournament(num_games=num_games)
 
     print("\n" + "=" * 60)
@@ -58,7 +59,7 @@ def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode
     print(elo.format_leaderboard())
 
 
-def run_single_game(players: list, config_path: str = "config.yaml", mode: str = "text"):
+def run_single_game(players: list, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json"):
     """
     Run a single game with specified players.
 
@@ -66,6 +67,7 @@ def run_single_game(players: list, config_path: str = "config.yaml", mode: str =
         players: List of 4 model keys (e.g., ['claude', 'gpt4', 'gemini', 'haiku'])
         config_path: Path to configuration file
         mode: Player mode ("text" or "mcp")
+        prompt_format: Prompt format - "json", "json-minified", or "toon"
     """
     if len(players) != 4:
         print("Error: Exactly 4 players required!")
@@ -73,11 +75,11 @@ def run_single_game(players: list, config_path: str = "config.yaml", mode: str =
         sys.exit(1)
 
     print("=" * 60)
-    print(f"LLM CATAN ARENA - SINGLE GAME MODE ({mode.upper()})")
+    print(f"LLM CATAN ARENA - SINGLE GAME MODE ({mode.upper()}, format={prompt_format})")
     print("=" * 60)
     print(f"Players: {players}\n")
 
-    runner = CatanGameRunner(config_path, mode=mode)
+    runner = CatanGameRunner(config_path, mode=mode, prompt_format=prompt_format)
     result = runner.run_game(players)
 
     print("\n" + "=" * 60)
@@ -158,17 +160,24 @@ def main():
         help='Player mode: text (prompt/response) or mcp (tool calling)'
     )
 
+    parser.add_argument(
+        '--format',
+        choices=['json', 'json-minified', 'toon'],
+        default='json',
+        help='Prompt format: json (standard), json-minified (~33%% token reduction), toon (~53%% token reduction)'
+    )
+
     args = parser.parse_args()
 
     # Determine mode
     if args.analyze:
         run_analysis()
     elif args.single_game:
-        run_single_game(args.single_game, args.config, args.mode)
+        run_single_game(args.single_game, args.config, args.mode, args.format)
     else:
         # Tournament mode
         num_games = args.games
-        run_tournament(num_games, args.config, args.mode)
+        run_tournament(num_games, args.config, args.mode, args.format)
 
 
 if __name__ == "__main__":
