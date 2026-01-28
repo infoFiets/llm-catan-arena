@@ -31,15 +31,17 @@ class CatanGameRunner:
     - Statistics tracking
     """
 
-    def __init__(self, config_path: str = "config.yaml", mode: str = "text"):
+    def __init__(self, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json"):
         """
         Initialize game runner.
 
         Args:
             config_path: Path to configuration YAML file
             mode: "text" for text-based players, "mcp" for MCP-based players
+            prompt_format: Prompt format - "json", "json-minified", or "toon"
         """
         self.mode = mode
+        self.prompt_format = prompt_format
         self.config = self._load_config(config_path)
         self.logger = GameResultLogger(
             output_dir=self.config["logging"]["output_dir"]
@@ -51,7 +53,7 @@ class CatanGameRunner:
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         )
         self.log = logging.getLogger(__name__)
-        self.log.info(f"Initializing game runner in {mode} mode")
+        self.log.info(f"Initializing game runner in {mode} mode with {prompt_format} prompt format")
 
         # Initialize OpenRouter client (for text mode)
         self.client = OpenRouterClient(
@@ -138,7 +140,8 @@ class CatanGameRunner:
                 client=self.client,
                 model_config=model_config,
                 session_id=session_id,
-                logger=self.logger
+                logger=self.logger,
+                prompt_format=self.prompt_format
             )
         elif "gpt" in model_key.lower():
             return GPTPlayer(
@@ -146,7 +149,8 @@ class CatanGameRunner:
                 client=self.client,
                 model_config=model_config,
                 session_id=session_id,
-                logger=self.logger
+                logger=self.logger,
+                prompt_format=self.prompt_format
             )
         elif "gemini" in model_key.lower():
             return GeminiPlayer(
@@ -154,7 +158,8 @@ class CatanGameRunner:
                 client=self.client,
                 model_config=model_config,
                 session_id=session_id,
-                logger=self.logger
+                logger=self.logger,
+                prompt_format=self.prompt_format
             )
         else:
             # Default to random player for unknown models

@@ -61,11 +61,10 @@ scripts/
 - Game logging to JSON files in `data/games/`
 - **Elo rating system** - Multiplayer Elo with persistence (`data/elo_ratings.json`)
 - Basic analysis and visualization
-- Token efficiency analysis (TOON format documented but not implemented)
-- Mode comparison tool (`compare_modes.py`)
+- **TOON-style prompt formatting** - Reduces tokens by ~40-53% (see Token Optimization section)
+- Mode and format comparison tools (`compare_modes.py`)
 
 ### What's NOT Implemented Yet
-- **TOON-style prompt formatting** - Documented in `docs/TOKEN_OPTIMIZATION_GUIDE.md` but `prompt_builder.py` still uses standard JSON
 - **MCP mode for GPT/Gemini** - Would need function calling implementations
 - **Mixed-mode games** - Can't pit MCP Claude vs Text Claude in same game (yet)
 
@@ -113,19 +112,25 @@ elo:
 
 ## Token Optimization / TOON Format
 
-TOON (Token-Oriented Object Notation) is a compact prompt format that reduces tokens by ~53%.
+TOON (Token-Oriented Object Notation) is a compact prompt format that reduces tokens by ~40-53%.
 
-**Current implementation:** Standard JSON with indentation in `prompt_builder.py`
+**Supported formats via `--format` flag:**
+| Format | Flag | Token Reduction |
+|--------|------|----------------|
+| JSON Standard | `--format json` | baseline (default) |
+| JSON Minified | `--format json-minified` | ~25-33% |
+| TOON-Style | `--format toon` | ~40-53% |
 
-**Analyzed formats (see `scripts/analyze_token_efficiency.py`):**
-| Format | Token Reduction |
-|--------|----------------|
-| Ultra-Compact | 75% |
-| TOON-Style | 53% |
-| JSON Minified | 33% |
-| JSON Standard | baseline |
+**Commands:**
+```bash
+# Run with TOON format for maximum efficiency
+python scripts/run_tournament.py --mode text --format toon --games 5
 
-To implement TOON, modify `src/prompt_builder.py` to use the `format_toon_style()` function pattern.
+# Compare formats (TOON vs JSON)
+python scripts/compare_modes.py --compare-formats json toon --games 5 --matchup claude claude claude claude
+```
+
+**Implementation:** `src/prompt_builder.py` supports all three formats via the `CatanPromptBuilder(format="toon")` constructor or `--format` CLI flag.
 
 ## Running the Project
 
@@ -133,17 +138,23 @@ To implement TOON, modify `src/prompt_builder.py` to use the `format_toon_style(
 # Activate venv
 source venv/bin/activate
 
-# Text mode tournament
+# Text mode tournament (default JSON format)
 python scripts/run_tournament.py --mode text --games 5
+
+# Text mode with TOON format (token efficient)
+python scripts/run_tournament.py --mode text --format toon --games 5
 
 # MCP mode tournament (Claude only)
 python scripts/run_tournament.py --mode mcp --games 5
 
-# Single game
-python scripts/run_tournament.py --single-game claude gpt4 gemini haiku --mode text
+# Single game with format option
+python scripts/run_tournament.py --single-game claude gpt4 gemini haiku --mode text --format toon
 
-# Compare text vs MCP
+# Compare text vs MCP modes
 python scripts/compare_modes.py --games 5 --matchup claude claude claude claude
+
+# Compare prompt formats (JSON vs TOON)
+python scripts/compare_modes.py --compare-formats json toon --games 5 --matchup claude claude claude claude
 
 # Run tests
 ./venv/bin/python -m pytest tests/ -v
@@ -165,11 +176,6 @@ python scripts/analyze_token_efficiency.py --show-examples
 1. Add config to `config.yaml` under `models:`
 2. If new provider, may need new player class in `src/players/text_based/`
 
-### Implementing TOON format
-1. Add TOON formatter to `src/prompt_builder.py`
-2. Add `--format` flag to `run_tournament.py`
-3. Run comparison tests to validate performance
-
 ### Adding MCP support for GPT
 1. Create `src/players/mcp_based/mcp_gpt_player.py`
 2. Use OpenAI function calling format
@@ -178,14 +184,14 @@ python scripts/analyze_token_efficiency.py --show-examples
 
 ## Test Coverage
 
-45 tests covering:
+62 tests covering:
 - `test_game_wrapper.py` - Game state serialization
 - `test_action_mapper.py` - Action ID generation
 - `test_mcp_server.py` - MCP server functionality
 - `test_mcp_players.py` - MCP player integration
+- `test_elo.py` - Elo rating system
 
 ## Known Limitations
 
 1. Can't directly compare MCP vs Text Claude in the same game (different player instances) - needs mixed-mode support
 2. MCP mode only works with Claude models
-3. TOON format is documented but not implemented in production prompts

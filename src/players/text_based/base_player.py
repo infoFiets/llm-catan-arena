@@ -34,7 +34,8 @@ class BaseLLMPlayer(Player, ABC):
         model_name: str,
         session_id: str = None,
         logger: GameResultLogger = None,
-        is_bot: bool = True
+        is_bot: bool = True,
+        prompt_format: str = "json"
     ):
         """
         Initialize base LLM player.
@@ -45,12 +46,14 @@ class BaseLLMPlayer(Player, ABC):
             session_id: Optional session ID for logging
             logger: Optional GameResultLogger instance
             is_bot: Whether this is a bot player
+            prompt_format: Prompt format - "json", "json-minified", or "toon"
         """
         super().__init__(color, is_bot)
         self.model_name = model_name
         self.session_id = session_id
         self.logger = logger
-        self.prompt_builder = CatanPromptBuilder()
+        self.prompt_format = prompt_format
+        self.prompt_builder = CatanPromptBuilder(format=prompt_format)
         self.recent_moves = []
         self.total_cost = 0.0
         self.total_tokens = 0
