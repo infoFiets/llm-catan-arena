@@ -190,7 +190,7 @@ Make your decision now by using the MCP tools."""
         """Safely convert action to string."""
         try:
             return str(action)
-        except:
+        except Exception:
             return "Action"
 
     def _fallback_action(self, playable_actions: List[Any]) -> Any:
