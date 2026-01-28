@@ -296,7 +296,8 @@ class CatanGameRunner:
                     elo_scores[player_id] = vp
 
                 elo_changes = self.elo.update_ratings(
-                    {"scores": elo_scores, "session_id": session_id}
+                    {"scores": elo_scores},
+                    session_id=session_id
                 )
                 results["elo_changes"] = elo_changes
 
