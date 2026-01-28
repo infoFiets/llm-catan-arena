@@ -18,10 +18,15 @@ Settlers of Catan is an excellent benchmark for LLM strategic reasoning because 
 ## Features
 
 - Multiple LLM players (Claude Sonnet 4, GPT-4, Gemini Pro, Claude Haiku)
+- **Two player modes:**
+  - **Text mode**: Traditional prompt/response with action parsing
+  - **MCP mode**: Model Context Protocol with native tool calling
 - Automated tournament system with configurable matchups
+- **Elo rating system** for persistent player rankings
 - Comprehensive game logging and analysis
 - Cost tracking per model and per game
 - Win rate and performance statistics
+- Mode comparison tools for benchmarking
 - Visualization of results
 
 ## Installation
@@ -81,6 +86,75 @@ python scripts/run_tournament.py --analyze
 ```
 
 View statistics from all previously played games.
+
+## Player Modes
+
+The arena supports two different modes for LLM players:
+
+### Text Mode (Default)
+
+Traditional prompt/response approach where:
+- Game state is serialized into a text prompt
+- LLM responds with action selection in natural language
+- Response is parsed to extract the selected action
+
+```bash
+python scripts/run_tournament.py --mode text --games 5
+```
+
+### MCP Mode (Model Context Protocol)
+
+Uses native tool calling for more structured interaction:
+- LLM queries game state through `get_game_state` tool
+- Available actions retrieved via `get_valid_actions` tool
+- Action selected using `select_action` tool
+- More reliable action parsing, potentially better token efficiency
+
+```bash
+python scripts/run_tournament.py --mode mcp --games 5
+```
+
+**Note:** MCP mode currently supports Claude models only. GPT and Gemini fall back to text mode.
+
+### Comparing Modes
+
+Use the comparison tool to benchmark text vs MCP performance:
+
+```bash
+python scripts/compare_modes.py --games 5 --matchup claude claude claude claude
+```
+
+This runs identical matchups in both modes and generates:
+- Cost comparison between modes
+- Token usage analysis
+- Performance metrics
+- Comparison plots
+
+## Elo Rating System
+
+The arena includes a multiplayer Elo rating system that tracks player performance across games.
+
+Each player variant is tracked separately (e.g., `claude-mcp` vs `claude-text`), allowing direct comparison between modes.
+
+### View Leaderboard
+
+```bash
+python scripts/elo_ratings.py
+```
+
+### Compare Players Head-to-Head
+
+```bash
+python scripts/elo_ratings.py --compare claude-mcp claude-text
+```
+
+### Show Recent Games
+
+```bash
+python scripts/elo_ratings.py --history 10
+```
+
+Ratings are automatically updated after each game and persisted to `data/elo_ratings.json`.
 
 ## Configuration
 
@@ -158,20 +232,36 @@ What action do you choose? Please respond with your choice and reasoning.
 llm-catan-arena/
 ├── src/
 │   ├── players/
-│   │   ├── base_player.py      # Abstract LLM player base
-│   │   ├── claude_player.py    # Claude implementation
-│   │   ├── gpt_player.py       # GPT-4 implementation
-│   │   ├── gemini_player.py    # Gemini implementation
-│   │   └── random_player.py    # Random baseline
-│   ├── prompt_builder.py       # Game state → LLM prompts
-│   ├── game_runner.py          # Game orchestration
-│   └── analysis.py             # Statistics and visualization
+│   │   ├── text_based/             # Text mode players
+│   │   │   ├── base_player.py      # Abstract LLM player base
+│   │   │   ├── claude_player.py    # Claude implementation
+│   │   │   ├── gpt_player.py       # GPT-4 implementation
+│   │   │   └── gemini_player.py    # Gemini implementation
+│   │   ├── mcp_based/              # MCP mode players
+│   │   │   ├── base_mcp_player.py  # Abstract MCP player base
+│   │   │   └── mcp_claude_player.py # Claude with tool calling
+│   │   └── random_player.py        # Random baseline
+│   ├── mcp/                        # MCP server implementation
+│   │   ├── server.py               # MCP server core
+│   │   ├── tools.py                # Tool definitions
+│   │   ├── game_wrapper.py         # Game state serialization
+│   │   └── action_mapper.py        # Action ID generation
+│   ├── prompt_builder.py           # Game state → LLM prompts
+│   ├── game_runner.py              # Game orchestration
+│   └── analysis.py                 # Statistics and visualization
 ├── scripts/
-│   └── run_tournament.py       # Main entry point
+│   ├── run_tournament.py           # Main entry point
+│   ├── compare_modes.py            # Text vs MCP comparison
+│   └── analyze_token_efficiency.py # Token optimization analysis
+├── tests/
+│   ├── test_game_wrapper.py        # MCP game wrapper tests
+│   ├── test_action_mapper.py       # Action mapper tests
+│   ├── test_mcp_server.py          # MCP server tests
+│   └── test_mcp_players.py         # MCP player integration tests
 ├── data/
-│   └── games/                  # Game logs (JSON)
-├── config.yaml                 # Configuration
-├── requirements.txt            # Python dependencies
+│   └── games/                      # Game logs (JSON)
+├── config.yaml                     # Configuration
+├── requirements.txt                # Python dependencies
 └── README.md
 ```
 
@@ -205,6 +295,7 @@ Game results include:
 Key libraries used:
 - **catanatron**: Fast Settlers of Catan game engine
 - **llm-game-utils**: Shared utilities for LLM game projects (OpenRouter client, logging, prompt formatting)
+- **anthropic**: Anthropic API client for MCP mode with Claude
 - **pandas, matplotlib, seaborn**: Data analysis and visualization
 - **pyyaml**: Configuration management
 
@@ -252,8 +343,11 @@ Costs vary based on game length and decision complexity.
 - [ ] Implement multi-turn strategy memory
 - [ ] Add support for player-to-player trading negotiations
 - [ ] Create web UI for watching games in real-time
-- [ ] Add Elo rating system for model rankings
 - [ ] Support for custom game variants
+- [ ] MCP mode for GPT models (function calling)
+- [ ] MCP mode for Gemini models (tool use)
+- [ ] TOON-style prompt formatting for token efficiency
+- [ ] Mixed-mode games (MCP vs Text players in same game)
 
 ## Contributing
 

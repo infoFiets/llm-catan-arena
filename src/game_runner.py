@@ -14,6 +14,7 @@ from llm_game_utils import OpenRouterClient, GameResultLogger
 
 from .players.text_based import ClaudePlayer, GPTPlayer, GeminiPlayer
 from .players import RandomPlayer
+from .elo import EloRating
 
 # Define available colors (strings in Catanatron 3.x)
 COLORS = ["RED", "BLUE", "WHITE", "ORANGE"]
@@ -68,6 +69,13 @@ class CatanGameRunner:
             self.log.info("MCP server initialized")
         else:
             self.mcp_server = None
+
+        # Initialize Elo rating system
+        self.elo = EloRating(
+            ratings_file=self.config.get("elo", {}).get("ratings_file", "data/elo_ratings.json"),
+            k_factor=self.config.get("elo", {}).get("k_factor", 32)
+        )
+        self.track_elo = self.config.get("elo", {}).get("enabled", True)
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -273,9 +281,33 @@ class CatanGameRunner:
                 "full_summary": summary
             }
 
+            # Update Elo ratings
+            elo_changes = {}
+            if self.track_elo:
+                # Create scores dict with mode-aware player IDs
+                elo_scores = {}
+                for player_key, vp in scores.items():
+                    # player_key is like "Claude 3.5 Sonnet:RED"
+                    # We want to track by model_key-mode, e.g., "claude-text" or "claude-mcp"
+                    color = player_key.split(":")[-1]
+                    color_idx = colors.index(color)
+                    model_key = player_models[color_idx]
+                    player_id = f"{model_key}-{self.mode}"
+                    elo_scores[player_id] = vp
+
+                elo_changes = self.elo.update_ratings(
+                    {"scores": elo_scores, "session_id": session_id}
+                )
+                results["elo_changes"] = elo_changes
+
             self.log.info(f"Game {session_id} completed. Winner: {winner_model}")
             self.log.info(f"Scores: {scores}")
             self.log.info(f"Total cost: ${total_cost:.4f}, Total tokens: {total_tokens}")
+
+            if elo_changes:
+                for player_id, change in elo_changes.items():
+                    change_str = f"+{change['change']:.1f}" if change['change'] >= 0 else f"{change['change']:.1f}"
+                    self.log.info(f"Elo: {player_id} {change['old']:.0f} -> {change['new']:.0f} ({change_str})")
 
             return results
 

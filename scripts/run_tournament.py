@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dotenv import load_dotenv
 from src.game_runner import CatanGameRunner
 from src.analysis import CatanAnalyzer
+from src.elo import EloRating
 
 # Load environment variables
 load_dotenv()
@@ -50,6 +51,11 @@ def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode
     print("\nGenerating analysis...")
     analyzer = CatanAnalyzer()
     analyzer.print_report(results)
+
+    # Show Elo leaderboard
+    print("\n")
+    elo = EloRating()
+    print(elo.format_leaderboard())
 
 
 def run_single_game(players: list, config_path: str = "config.yaml", mode: str = "text"):
@@ -81,6 +87,14 @@ def run_single_game(players: list, config_path: str = "config.yaml", mode: str =
     print(f"Scores: {result['scores']}")
     print(f"Total Cost: ${result['total_cost']:.4f}")
     print(f"Total Tokens: {result['total_tokens']}")
+
+    # Show Elo changes if available
+    if "elo_changes" in result and result["elo_changes"]:
+        print("\nElo Rating Changes:")
+        for player_id, change in sorted(result["elo_changes"].items(), key=lambda x: -x[1]["new"]):
+            change_str = f"+{change['change']:.1f}" if change['change'] >= 0 else f"{change['change']:.1f}"
+            print(f"  {player_id}: {change['old']:.0f} -> {change['new']:.0f} ({change_str})")
+
     print("=" * 60)
 
 
