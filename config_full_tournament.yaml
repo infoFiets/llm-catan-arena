@@ -1,0 +1,912 @@
+# Full Tournament Configuration for LLM Catan Arena
+# Comprehensive model list for benchmarking across all major providers
+#
+# All models accessible via OpenRouter with just OPENROUTER_API_KEY
+# Pricing from https://openrouter.ai/models - Jan 2026
+# Costs are per 1K tokens
+
+# =============================================================================
+# ANTHROPIC - Claude Family (Evolution: 3-opus → 3.5-sonnet → 4-sonnet → 4.5-sonnet)
+# =============================================================================
+models:
+  # === Claude 4.5 Series (Latest - Nov 2025) ===
+  claude-4.5-opus:
+    model_id: "anthropic/claude-4.5-opus-20251124"
+    name: "Claude 4.5 Opus"
+    provider: "anthropic"
+    tier: "flagship"
+    release: "2025-11"
+    generation: 4.5
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.015
+    output_cost: 0.075
+    tool_calling: true
+
+  claude-4.5-sonnet:
+    model_id: "anthropic/claude-4.5-sonnet-20250929"
+    name: "Claude 4.5 Sonnet"
+    provider: "anthropic"
+    tier: "flagship"
+    release: "2025-09"
+    generation: 4.5
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.003
+    output_cost: 0.015
+    tool_calling: true
+
+  claude-4.5-haiku:
+    model_id: "anthropic/claude-4.5-haiku-20251001"
+    name: "Claude 4.5 Haiku"
+    provider: "anthropic"
+    tier: "fast"
+    release: "2025-10"
+    generation: 4.5
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00025
+    output_cost: 0.00125
+    tool_calling: true
+
+  # === Claude 4 Series (May 2025) ===
+  claude-4-sonnet:
+    model_id: "anthropic/claude-4-sonnet-20250522"
+    name: "Claude 4 Sonnet"
+    provider: "anthropic"
+    tier: "flagship"
+    release: "2025-05"
+    generation: 4.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.003
+    output_cost: 0.015
+    tool_calling: true
+
+  claude-4-opus:
+    model_id: "anthropic/claude-4-opus-20250522"
+    name: "Claude 4 Opus"
+    provider: "anthropic"
+    tier: "flagship"
+    release: "2025-05"
+    generation: 4.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.015
+    output_cost: 0.075
+    tool_calling: true
+
+  # === Claude 3.7 Series (Feb 2025) ===
+  claude-3.7-sonnet:
+    model_id: "anthropic/claude-3-7-sonnet-20250219"
+    name: "Claude 3.7 Sonnet"
+    provider: "anthropic"
+    tier: "flagship"
+    release: "2025-02"
+    generation: 3.7
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.003
+    output_cost: 0.015
+    tool_calling: true
+
+  claude-3.7-sonnet-thinking:
+    model_id: "anthropic/claude-3-7-sonnet-20250219:thinking"
+    name: "Claude 3.7 Sonnet (Thinking)"
+    provider: "anthropic"
+    tier: "reasoning"
+    release: "2025-02"
+    generation: 3.7
+    temperature: 1.0
+    max_tokens: 4000
+    input_cost: 0.003
+    output_cost: 0.015
+    tool_calling: true
+
+  # === Claude 3.5 Series (2024) ===
+  claude-3.5-sonnet:
+    model_id: "anthropic/claude-3.5-sonnet"
+    name: "Claude 3.5 Sonnet"
+    provider: "anthropic"
+    tier: "legacy"
+    release: "2024-06"
+    generation: 3.5
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.003
+    output_cost: 0.015
+    tool_calling: true
+
+  claude-3.5-haiku:
+    model_id: "anthropic/claude-3-5-haiku"
+    name: "Claude 3.5 Haiku"
+    provider: "anthropic"
+    tier: "legacy"
+    release: "2024-10"
+    generation: 3.5
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00025
+    output_cost: 0.00125
+    tool_calling: true
+
+  # === Claude 3 Series (2024) ===
+  claude-3-opus:
+    model_id: "anthropic/claude-3-opus"
+    name: "Claude 3 Opus"
+    provider: "anthropic"
+    tier: "legacy"
+    release: "2024-03"
+    generation: 3.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.015
+    output_cost: 0.075
+    tool_calling: true
+
+  claude-3-haiku:
+    model_id: "anthropic/claude-3-haiku"
+    name: "Claude 3 Haiku"
+    provider: "anthropic"
+    tier: "legacy"
+    release: "2024-03"
+    generation: 3.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00025
+    output_cost: 0.00125
+    tool_calling: true
+
+# =============================================================================
+# OPENAI - GPT Family (Evolution: 4o → 4.1 → 5 → 5.1 → 5.2)
+# =============================================================================
+  # === GPT-5.2 Series (Latest - Dec 2025) ===
+  gpt-5.2:
+    model_id: "openai/gpt-5.2-20251211"
+    name: "GPT-5.2"
+    provider: "openai"
+    tier: "flagship"
+    release: "2025-12"
+    generation: 5.2
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.010
+    output_cost: 0.030
+    tool_calling: true
+
+  # === GPT-5.1 Series (Nov 2025) ===
+  gpt-5.1:
+    model_id: "openai/gpt-5.1-20251113"
+    name: "GPT-5.1"
+    provider: "openai"
+    tier: "flagship"
+    release: "2025-11"
+    generation: 5.1
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.008
+    output_cost: 0.024
+    tool_calling: true
+
+  # === GPT-5 Series (Aug 2025) ===
+  gpt-5:
+    model_id: "openai/gpt-5-2025-08-07"
+    name: "GPT-5"
+    provider: "openai"
+    tier: "flagship"
+    release: "2025-08"
+    generation: 5.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.006
+    output_cost: 0.018
+    tool_calling: true
+
+  gpt-5-mini:
+    model_id: "openai/gpt-5-mini-2025-08-07"
+    name: "GPT-5 Mini"
+    provider: "openai"
+    tier: "fast"
+    release: "2025-08"
+    generation: 5.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0003
+    output_cost: 0.0012
+    tool_calling: true
+
+  gpt-5-nano:
+    model_id: "openai/gpt-5-nano-2025-08-07"
+    name: "GPT-5 Nano"
+    provider: "openai"
+    tier: "fast"
+    release: "2025-08"
+    generation: 5.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0001
+    output_cost: 0.0004
+    tool_calling: true
+
+  # === GPT-4.1 Series (Apr 2025) ===
+  gpt-4.1:
+    model_id: "openai/gpt-4.1-2025-04-14"
+    name: "GPT-4.1"
+    provider: "openai"
+    tier: "legacy"
+    release: "2025-04"
+    generation: 4.1
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.005
+    output_cost: 0.015
+    tool_calling: true
+
+  gpt-4.1-mini:
+    model_id: "openai/gpt-4.1-mini-2025-04-14"
+    name: "GPT-4.1 Mini"
+    provider: "openai"
+    tier: "legacy"
+    release: "2025-04"
+    generation: 4.1
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0002
+    output_cost: 0.0008
+    tool_calling: true
+
+  # === GPT-4o Series (2024) ===
+  gpt-4o:
+    model_id: "openai/gpt-4o"
+    name: "GPT-4o"
+    provider: "openai"
+    tier: "legacy"
+    release: "2024-05"
+    generation: 4.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.005
+    output_cost: 0.015
+    tool_calling: true
+
+  gpt-4o-mini:
+    model_id: "openai/gpt-4o-mini"
+    name: "GPT-4o Mini"
+    provider: "openai"
+    tier: "legacy"
+    release: "2024-07"
+    generation: 4.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00015
+    output_cost: 0.0006
+    tool_calling: true
+
+# =============================================================================
+# GOOGLE - Gemini Family (Evolution: 2.0-flash → 2.5-pro → 3-pro)
+# =============================================================================
+  # === Gemini 3 Series (Latest - Nov 2025) ===
+  gemini-3-pro:
+    model_id: "google/gemini-3-pro-preview-20251117"
+    name: "Gemini 3 Pro"
+    provider: "google"
+    tier: "flagship"
+    release: "2025-11"
+    generation: 3.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00125
+    output_cost: 0.005
+    tool_calling: true
+
+  gemini-3-flash:
+    model_id: "google/gemini-3-flash-preview-20251217"
+    name: "Gemini 3 Flash"
+    provider: "google"
+    tier: "fast"
+    release: "2025-12"
+    generation: 3.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0001
+    output_cost: 0.0004
+    tool_calling: true
+
+  # === Gemini 2.5 Series (Jun 2025) ===
+  gemini-2.5-pro:
+    model_id: "google/gemini-2.5-pro"
+    name: "Gemini 2.5 Pro"
+    provider: "google"
+    tier: "flagship"
+    release: "2025-06"
+    generation: 2.5
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00125
+    output_cost: 0.005
+    tool_calling: true
+
+  gemini-2.5-flash:
+    model_id: "google/gemini-2.5-flash"
+    name: "Gemini 2.5 Flash"
+    provider: "google"
+    tier: "fast"
+    release: "2025-06"
+    generation: 2.5
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.000075
+    output_cost: 0.0003
+    tool_calling: true
+
+  gemini-2.5-flash-lite:
+    model_id: "google/gemini-2.5-flash-lite"
+    name: "Gemini 2.5 Flash Lite"
+    provider: "google"
+    tier: "fast"
+    release: "2025-06"
+    generation: 2.5
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00005
+    output_cost: 0.0002
+    tool_calling: true
+
+  # === Gemini 2.0 Series (2024) ===
+  gemini-2.0-flash:
+    model_id: "google/gemini-2.0-flash-001"
+    name: "Gemini 2.0 Flash"
+    provider: "google"
+    tier: "legacy"
+    release: "2024-12"
+    generation: 2.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0001
+    output_cost: 0.0004
+    tool_calling: true
+
+# =============================================================================
+# META - Llama Family (Evolution: 3-70b → 3.1-70b → 3.3-70b → 4-maverick)
+# =============================================================================
+  # === Llama 4 Series (Latest - Apr 2025) ===
+  llama-4-maverick:
+    model_id: "meta-llama/llama-4-maverick-17b-128e-instruct"
+    name: "Llama 4 Maverick"
+    provider: "meta"
+    tier: "flagship"
+    release: "2025-04"
+    generation: 4.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0005
+    output_cost: 0.0005
+    tool_calling: true
+    open_source: true
+
+  llama-4-scout:
+    model_id: "meta-llama/llama-4-scout-17b-16e-instruct"
+    name: "Llama 4 Scout"
+    provider: "meta"
+    tier: "mid"
+    release: "2025-04"
+    generation: 4.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0003
+    output_cost: 0.0003
+    tool_calling: true
+    open_source: true
+
+  # === Llama 3.3 Series (Dec 2024) ===
+  llama-3.3-70b:
+    model_id: "meta-llama/llama-3.3-70b-instruct"
+    name: "Llama 3.3 70B"
+    provider: "meta"
+    tier: "legacy"
+    release: "2024-12"
+    generation: 3.3
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0003
+    output_cost: 0.0003
+    tool_calling: true
+    open_source: true
+
+  # === Llama 3.1 Series (Jul 2024) ===
+  llama-3.1-405b:
+    model_id: "meta-llama/llama-3.1-405b-instruct"
+    name: "Llama 3.1 405B"
+    provider: "meta"
+    tier: "legacy"
+    release: "2024-07"
+    generation: 3.1
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.003
+    output_cost: 0.003
+    tool_calling: true
+    open_source: true
+
+  llama-3.1-70b:
+    model_id: "meta-llama/llama-3.1-70b-instruct"
+    name: "Llama 3.1 70B"
+    provider: "meta"
+    tier: "legacy"
+    release: "2024-07"
+    generation: 3.1
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0003
+    output_cost: 0.0003
+    tool_calling: true
+    open_source: true
+
+  llama-3.1-8b:
+    model_id: "meta-llama/llama-3.1-8b-instruct"
+    name: "Llama 3.1 8B"
+    provider: "meta"
+    tier: "fast"
+    release: "2024-07"
+    generation: 3.1
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00005
+    output_cost: 0.00005
+    tool_calling: true
+    open_source: true
+
+  # === Llama 3 Series (Apr 2024) ===
+  llama-3-70b:
+    model_id: "meta-llama/llama-3-70b-instruct"
+    name: "Llama 3 70B"
+    provider: "meta"
+    tier: "legacy"
+    release: "2024-04"
+    generation: 3.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0003
+    output_cost: 0.0003
+    tool_calling: true
+    open_source: true
+
+  llama-3-8b:
+    model_id: "meta-llama/llama-3-8b-instruct"
+    name: "Llama 3 8B"
+    provider: "meta"
+    tier: "legacy"
+    release: "2024-04"
+    generation: 3.0
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00005
+    output_cost: 0.00005
+    tool_calling: true
+    open_source: true
+
+# =============================================================================
+# MISTRAL - European AI
+# =============================================================================
+  # Mistral Large 2512 - Latest flagship
+  mistral-large:
+    model_id: "mistralai/mistral-large-2512"
+    name: "Mistral Large"
+    provider: "mistral"
+    tier: "flagship"
+    release: "2025-12"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.002
+    output_cost: 0.006
+    tool_calling: true
+
+  # Mistral Medium 3.1 - Mid-tier
+  mistral-medium:
+    model_id: "mistralai/mistral-medium-3.1"
+    name: "Mistral Medium 3.1"
+    provider: "mistral"
+    tier: "mid"
+    release: "2025-03"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.001
+    output_cost: 0.003
+    tool_calling: true
+
+  # Mistral Small 3.2 - Fast model
+  mistral-small:
+    model_id: "mistralai/mistral-small-3.2-24b-instruct-2506"
+    name: "Mistral Small 3.2"
+    provider: "mistral"
+    tier: "fast"
+    release: "2025-06"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0002
+    output_cost: 0.0006
+    tool_calling: true
+
+  # Mixtral 8x7B - MoE model (open source)
+  mixtral-8x7b:
+    model_id: "mistralai/mixtral-8x7b-instruct"
+    name: "Mixtral 8x7B"
+    provider: "mistral"
+    tier: "mid"
+    release: "2023-12"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00024
+    output_cost: 0.00024
+    tool_calling: true
+    open_source: true
+
+# =============================================================================
+# DEEPSEEK - Chinese AI (Extremely Cost Effective)
+# =============================================================================
+  # DeepSeek V3.2 - Latest flagship
+  deepseek-v3.2:
+    model_id: "deepseek/deepseek-v3.2-20251201"
+    name: "DeepSeek V3.2"
+    provider: "deepseek"
+    tier: "flagship"
+    release: "2025-12"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00014
+    output_cost: 0.00028
+    tool_calling: true
+    open_source: true
+
+  # DeepSeek V3.1 - Previous flagship
+  deepseek-v3.1:
+    model_id: "deepseek/deepseek-chat-v3.1"
+    name: "DeepSeek V3.1"
+    provider: "deepseek"
+    tier: "flagship"
+    release: "2025-06"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00014
+    output_cost: 0.00028
+    tool_calling: true
+    open_source: true
+
+  # DeepSeek R1 - Reasoning model
+  deepseek-r1:
+    model_id: "deepseek/deepseek-r1-0528"
+    name: "DeepSeek R1"
+    provider: "deepseek"
+    tier: "reasoning"
+    release: "2025-05"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.00055
+    output_cost: 0.00219
+    tool_calling: true
+    open_source: true
+
+# =============================================================================
+# XAI - Grok
+# =============================================================================
+  # Grok 4.1 Fast - Latest flagship
+  grok-4.1:
+    model_id: "x-ai/grok-4.1-fast"
+    name: "Grok 4.1 Fast"
+    provider: "xai"
+    tier: "flagship"
+    release: "2025-07"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.002
+    output_cost: 0.010
+    tool_calling: true
+
+  # Grok 4 Fast - Previous version
+  grok-4:
+    model_id: "x-ai/grok-4-fast"
+    name: "Grok 4 Fast"
+    provider: "xai"
+    tier: "flagship"
+    release: "2025-06"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.002
+    output_cost: 0.010
+    tool_calling: true
+
+  # Grok 3 Mini - Smaller variant
+  grok-3-mini:
+    model_id: "x-ai/grok-3-mini"
+    name: "Grok 3 Mini"
+    provider: "xai"
+    tier: "fast"
+    release: "2025-02"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0005
+    output_cost: 0.002
+    tool_calling: true
+
+# =============================================================================
+# ALIBABA - Qwen (Open Source)
+# =============================================================================
+  # Qwen 3 235B - Flagship open source
+  qwen3-235b:
+    model_id: "qwen/qwen3-235b-a22b-07-25"
+    name: "Qwen 3 235B"
+    provider: "alibaba"
+    tier: "flagship"
+    release: "2025-07"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0004
+    output_cost: 0.0004
+    tool_calling: true
+    open_source: true
+
+  # Qwen 3 235B Thinking - Reasoning variant
+  qwen3-235b-thinking:
+    model_id: "qwen/qwen3-235b-a22b-thinking-2507"
+    name: "Qwen 3 235B (Thinking)"
+    provider: "alibaba"
+    tier: "reasoning"
+    release: "2025-07"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0006
+    output_cost: 0.0006
+    tool_calling: true
+    open_source: true
+
+  # Qwen 3 Max - Production flagship
+  qwen3-max:
+    model_id: "qwen/qwen3-max"
+    name: "Qwen 3 Max"
+    provider: "alibaba"
+    tier: "flagship"
+    release: "2025-04"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0004
+    output_cost: 0.0004
+    tool_calling: true
+    open_source: true
+
+  # Qwen 2.5 72B - Previous generation
+  qwen-2.5-72b:
+    model_id: "qwen/qwen-2.5-72b-instruct"
+    name: "Qwen 2.5 72B"
+    provider: "alibaba"
+    tier: "mid"
+    release: "2024-09"
+    temperature: 0.7
+    max_tokens: 4000
+    input_cost: 0.0004
+    output_cost: 0.0004
+    tool_calling: true
+    open_source: true
+
+# =============================================================================
+# Game Configuration
+# =============================================================================
+game:
+  num_players: 4
+  max_turns: 500
+  log_level: "INFO"
+  victory_points: 10
+  enable_trading: true
+  enable_robber: true
+
+# =============================================================================
+# Logging Configuration
+# =============================================================================
+logging:
+  output_dir: "data/games"
+  save_full_prompts: true
+  save_game_states: true
+
+# =============================================================================
+# OpenRouter Configuration
+# =============================================================================
+openrouter:
+  app_name: "LLM Catan Arena"
+  site_url: "https://github.com/your-username/llm-catan-arena"
+
+# =============================================================================
+# Elo Rating Configuration
+# =============================================================================
+elo:
+  enabled: true
+  ratings_file: "data/elo_ratings.json"
+  k_factor: 32
+
+# =============================================================================
+# Tournament Matchups
+# =============================================================================
+tournament:
+  default_games: 5
+  parallel_games: 3  # Number of games to run simultaneously (2-4 recommended)
+
+  matchups:
+    # === FLAGSHIP BATTLE (Latest from each provider) ===
+    - ["claude-4.5-opus", "gpt-5.2", "gemini-3-pro", "llama-4-maverick"]
+    - ["claude-4.5-sonnet", "gpt-5.1", "gemini-2.5-pro", "qwen3-235b"]
+
+    # === FAST/CHEAP MODELS ===
+    - ["claude-4.5-haiku", "gpt-5-mini", "gemini-2.5-flash", "llama-3.1-8b"]
+    - ["gpt-5-nano", "gemini-2.5-flash-lite", "mistral-small", "grok-3-mini"]
+
+    # === OPEN SOURCE SHOWDOWN ===
+    - ["llama-4-maverick", "qwen3-235b", "deepseek-v3.2", "mixtral-8x7b"]
+    - ["llama-3.1-405b", "qwen3-max", "deepseek-v3.1", "llama-3.3-70b"]
+
+    # === COST EFFICIENCY (Ultra cheap) ===
+    - ["deepseek-v3.2", "gemini-2.5-flash-lite", "llama-3.1-8b", "gpt-5-nano"]
+
+    # === REASONING MODELS ===
+    - ["claude-3.7-sonnet-thinking", "deepseek-r1", "qwen3-235b-thinking", "gpt-5.2"]
+
+    # === PROVIDER COMPARISON (Flagships) ===
+    - ["claude-4.5-sonnet", "gpt-5.2", "gemini-2.5-pro", "mistral-large"]
+    - ["deepseek-v3.2", "grok-4.1", "qwen3-max", "llama-4-maverick"]
+
+    # === MIXED MODE (Tool-calling vs Text) ===
+    - ["claude-4.5-sonnet-mcp", "claude-4.5-sonnet-text", "gpt-5.2-mcp", "gpt-5.2-text"]
+
+    # ==========================================================================
+    # EVOLUTION MATCHUPS - Track improvement across generations
+    # ==========================================================================
+
+    # === CLAUDE EVOLUTION (3.0 → 3.5 → 3.7 → 4.0 → 4.5) ===
+    - ["claude-3-opus", "claude-3.5-sonnet", "claude-4-sonnet", "claude-4.5-sonnet"]
+    - ["claude-3-haiku", "claude-3.5-haiku", "claude-4.5-haiku", "claude-4.5-haiku"]
+
+    # === GPT EVOLUTION (4o → 4.1 → 5.0 → 5.1 → 5.2) ===
+    - ["gpt-4o", "gpt-4.1", "gpt-5", "gpt-5.2"]
+    - ["gpt-4o-mini", "gpt-4.1-mini", "gpt-5-mini", "gpt-5-nano"]
+
+    # === GEMINI EVOLUTION (2.0 → 2.5 → 3.0) ===
+    - ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-3-flash", "gemini-2.5-pro"]
+    - ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-3-pro", "gemini-3-pro"]
+
+    # === LLAMA EVOLUTION (3.0 → 3.1 → 3.3 → 4.0) ===
+    - ["llama-3-70b", "llama-3.1-70b", "llama-3.3-70b", "llama-4-maverick"]
+    - ["llama-3-8b", "llama-3.1-8b", "llama-4-scout", "llama-4-maverick"]
+
+    # === CROSS-GENERATION BATTLES ===
+    # Old flagships vs new budget models
+    - ["claude-3-opus", "gpt-4o", "gpt-5-mini", "claude-4.5-haiku"]
+    # Latest vs 1 year ago
+    - ["claude-4.5-sonnet", "claude-3.5-sonnet", "gpt-5.2", "gpt-4o"]
+
+# =============================================================================
+# Model Categories for Analysis
+# =============================================================================
+model_categories:
+  flagship:
+    description: "Best models from each provider (current)"
+    models:
+      - "claude-4.5-opus"
+      - "claude-4.5-sonnet"
+      - "gpt-5.2"
+      - "gpt-5.1"
+      - "gemini-3-pro"
+      - "gemini-2.5-pro"
+      - "llama-4-maverick"
+      - "mistral-large"
+      - "deepseek-v3.2"
+      - "grok-4.1"
+      - "qwen3-235b"
+
+  fast_cheap:
+    description: "Budget-friendly, low latency"
+    models:
+      - "claude-4.5-haiku"
+      - "gpt-5-mini"
+      - "gpt-5-nano"
+      - "gemini-2.5-flash"
+      - "gemini-2.5-flash-lite"
+      - "gemini-3-flash"
+      - "llama-3.1-8b"
+      - "mistral-small"
+      - "grok-3-mini"
+
+  reasoning:
+    description: "Models with extended thinking"
+    models:
+      - "claude-3.7-sonnet-thinking"
+      - "deepseek-r1"
+      - "qwen3-235b-thinking"
+
+  open_source:
+    description: "Open weights models"
+    models:
+      - "llama-4-maverick"
+      - "llama-4-scout"
+      - "llama-3.3-70b"
+      - "llama-3.1-405b"
+      - "llama-3.1-70b"
+      - "llama-3.1-8b"
+      - "llama-3-70b"
+      - "llama-3-8b"
+      - "mixtral-8x7b"
+      - "deepseek-v3.2"
+      - "deepseek-v3.1"
+      - "deepseek-r1"
+      - "qwen3-235b"
+      - "qwen3-max"
+      - "qwen-2.5-72b"
+
+  value:
+    description: "Best performance per dollar"
+    models:
+      - "deepseek-v3.2"
+      - "gemini-2.5-flash-lite"
+      - "llama-4-maverick"
+      - "qwen3-max"
+      - "gpt-5-nano"
+
+  # ==========================================================================
+  # EVOLUTION CATEGORIES - For generational analysis
+  # ==========================================================================
+  claude_evolution:
+    description: "Claude model generations for Elo progression"
+    models:
+      - "claude-3-opus"       # Gen 3.0 - Mar 2024
+      - "claude-3-haiku"      # Gen 3.0 - Mar 2024
+      - "claude-3.5-sonnet"   # Gen 3.5 - Jun 2024
+      - "claude-3.5-haiku"    # Gen 3.5 - Oct 2024
+      - "claude-3.7-sonnet"   # Gen 3.7 - Feb 2025
+      - "claude-4-sonnet"     # Gen 4.0 - May 2025
+      - "claude-4-opus"       # Gen 4.0 - May 2025
+      - "claude-4.5-sonnet"   # Gen 4.5 - Sep 2025
+      - "claude-4.5-opus"     # Gen 4.5 - Nov 2025
+      - "claude-4.5-haiku"    # Gen 4.5 - Oct 2025
+
+  gpt_evolution:
+    description: "GPT model generations for Elo progression"
+    models:
+      - "gpt-4o"              # Gen 4.0 - May 2024
+      - "gpt-4o-mini"         # Gen 4.0 - Jul 2024
+      - "gpt-4.1"             # Gen 4.1 - Apr 2025
+      - "gpt-4.1-mini"        # Gen 4.1 - Apr 2025
+      - "gpt-5"               # Gen 5.0 - Aug 2025
+      - "gpt-5-mini"          # Gen 5.0 - Aug 2025
+      - "gpt-5-nano"          # Gen 5.0 - Aug 2025
+      - "gpt-5.1"             # Gen 5.1 - Nov 2025
+      - "gpt-5.2"             # Gen 5.2 - Dec 2025
+
+  gemini_evolution:
+    description: "Gemini model generations for Elo progression"
+    models:
+      - "gemini-2.0-flash"    # Gen 2.0 - Dec 2024
+      - "gemini-2.5-flash"    # Gen 2.5 - Jun 2025
+      - "gemini-2.5-flash-lite" # Gen 2.5 - Jun 2025
+      - "gemini-2.5-pro"      # Gen 2.5 - Jun 2025
+      - "gemini-3-flash"      # Gen 3.0 - Dec 2025
+      - "gemini-3-pro"        # Gen 3.0 - Nov 2025
+
+  llama_evolution:
+    description: "Llama model generations for Elo progression"
+    models:
+      - "llama-3-8b"          # Gen 3.0 - Apr 2024
+      - "llama-3-70b"         # Gen 3.0 - Apr 2024
+      - "llama-3.1-8b"        # Gen 3.1 - Jul 2024
+      - "llama-3.1-70b"       # Gen 3.1 - Jul 2024
+      - "llama-3.1-405b"      # Gen 3.1 - Jul 2024
+      - "llama-3.3-70b"       # Gen 3.3 - Dec 2024
+      - "llama-4-scout"       # Gen 4.0 - Apr 2025
+      - "llama-4-maverick"    # Gen 4.0 - Apr 2025
+
+  legacy:
+    description: "Older models for baseline comparison"
+    models:
+      - "claude-3-opus"
+      - "claude-3-haiku"
+      - "claude-3.5-sonnet"
+      - "gpt-4o"
+      - "gpt-4o-mini"
+      - "gemini-2.0-flash"
+      - "llama-3-70b"
+      - "llama-3-8b"

@@ -10,18 +10,20 @@ LLM Catan Arena is a benchmarking platform that pits different LLM models agains
 
 The arena supports two distinct player modes:
 
-1. **Text Mode** (original) - `src/players/text_based/`
+1. **Text Mode** - `src/players/text_based/`
    - LLM receives full game state as JSON in a prompt
    - LLM responds with natural language action selection
    - Response is parsed to extract chosen action
-   - Uses OpenRouter API for all models
+   - Uses **OpenRouter API** for all models
 
-2. **MCP Mode** (Model Context Protocol) - `src/players/mcp_based/`
-   - LLM uses native tool calling to query game state
+2. **Tool-Calling Mode** (called "MCP" in code) - `src/players/mcp_based/`
+   - LLM uses native tool/function calling to query game state
    - Three tools: `get_game_state`, `get_valid_actions`, `select_action`
-   - More structured interaction, potentially better parsing reliability
-   - Currently only implemented for Claude (uses Anthropic API directly)
-   - GPT and Gemini fall back to text mode
+   - More structured interaction, better parsing reliability
+   - Uses **OpenRouter API** tool calling for all models
+   - Works with Claude, GPT-4, Gemini, and other tool-capable models
+
+**Both modes use OpenRouter** - you only need `OPENROUTER_API_KEY`.
 
 ### Key Directories
 
@@ -57,6 +59,7 @@ scripts/
 ### What's Implemented
 - Full text mode for Claude, GPT-4, Gemini
 - Full MCP mode for Claude only
+- **Mixed-mode games** - Pit MCP Claude vs Text Claude in same game for direct comparison
 - Tournament system with configurable matchups
 - Game logging to JSON files in `data/games/`
 - **Elo rating system** - Multiplayer Elo with persistence (`data/elo_ratings.json`)
@@ -65,8 +68,8 @@ scripts/
 - Mode and format comparison tools (`compare_modes.py`)
 
 ### What's NOT Implemented Yet
-- **MCP mode for GPT/Gemini** - Would need function calling implementations
-- **Mixed-mode games** - Can't pit MCP Claude vs Text Claude in same game (yet)
+- **TOON format validation** - Need to verify TOON parsing works for all models
+- **Parallel game execution** - Currently runs games sequentially
 
 ## Elo Rating System
 
@@ -144,17 +147,27 @@ python scripts/run_tournament.py --mode text --games 5
 # Text mode with TOON format (token efficient)
 python scripts/run_tournament.py --mode text --format toon --games 5
 
-# MCP mode tournament (Claude only)
+# MCP/Tool-calling mode tournament
 python scripts/run_tournament.py --mode mcp --games 5
 
 # Single game with format option
-python scripts/run_tournament.py --single-game claude gpt4 gemini haiku --mode text --format toon
+python scripts/run_tournament.py --single-game claude gpt5 gemini haiku --mode text --format toon
+
+# Mixed-mode: MCP vs Text direct comparison
+python scripts/run_tournament.py --single-game claude-mcp claude-text gpt5-mcp gpt5-text
 
 # Compare text vs MCP modes
 python scripts/compare_modes.py --games 5 --matchup claude claude claude claude
 
 # Compare prompt formats (JSON vs TOON)
 python scripts/compare_modes.py --compare-formats json toon --games 5 --matchup claude claude claude claude
+
+# Run full tournament with all models
+python scripts/run_full_tournament.py --estimate-only  # Check costs first
+python scripts/run_full_tournament.py --all --quick    # Quick test run
+
+# Generate leaderboard for website
+python scripts/generate_leaderboard.py --output docs/leaderboard
 
 # Run tests
 ./venv/bin/python -m pytest tests/ -v
@@ -167,8 +180,41 @@ python scripts/analyze_token_efficiency.py --show-examples
 
 - `catanatron` - Catan game engine
 - `llm-game-utils` - Shared utilities (installed from `../llm-game-utils`)
-- `anthropic` - For MCP mode with Claude
+- `anthropic` - For tool-calling mode with Claude
 - OpenRouter handles text mode API calls for all models
+
+## API Keys & Providers
+
+| Mode | Provider | API Key | Models Supported |
+|------|----------|---------|------------------|
+| Text | OpenRouter | `OPENROUTER_API_KEY` | All models |
+| Tool-calling | OpenRouter | `OPENROUTER_API_KEY` | All models with tool support |
+
+**OpenRouter** is an API aggregator that provides access to many models through a single API.
+Both text mode and tool-calling mode use OpenRouter, so you only need one API key.
+
+**Setup:**
+```bash
+# .env file
+OPENROUTER_API_KEY=sk-or-...  # Required - used for both modes
+```
+
+**Current models (Jan 2026):**
+- Claude 4.5 (Opus, Sonnet, Haiku)
+- GPT-5 series (5.2, 5.1, 5-mini, 5-nano)
+- Gemini 3 Pro, 2.5 Pro/Flash
+- Llama 4 (Maverick, Scout)
+- DeepSeek V3.2, R1
+- Mistral Large, Medium, Small
+- Grok 4.1
+- Qwen 3 (235B, Max)
+
+**Full model list:** See `config_full_tournament.yaml` for 30+ models with pricing.
+
+**Alternative providers** (not currently implemented):
+- **Groq** - Fast inference for Llama, Mixtral
+- **TogetherAI** - Open-source models
+- **Direct APIs** - Anthropic, OpenAI, Google directly
 
 ## Common Tasks
 
@@ -191,7 +237,30 @@ python scripts/analyze_token_efficiency.py --show-examples
 - `test_mcp_players.py` - MCP player integration
 - `test_elo.py` - Elo rating system
 
+## Mixed-Mode Games
+
+Compare MCP vs Text players directly in the same game using mode suffixes:
+
+```bash
+# Direct head-to-head: MCP Claude vs Text Claude
+python scripts/run_tournament.py --single-game claude-mcp claude-text claude-mcp claude-text
+
+# Mix of modes and models
+python scripts/run_tournament.py --single-game claude-mcp claude-text gpt5-mcp gpt5-text
+
+# Cross-provider comparison
+python scripts/run_tournament.py --single-game claude-mcp gpt5-mcp gemini-mcp deepseek-mcp
+```
+
+**Player spec format:** `{model_key}-{mode}` where mode is `mcp` or `text`
+- `claude-mcp` - Claude using MCP mode (tool calling)
+- `claude-text` - Claude using text mode (prompt/response)
+- `gpt5-mcp` - GPT-5 using tool calling
+- `claude` - Uses default mode from `--mode` flag (defaults to text)
+
+**Elo tracking:** Each model+mode combination is tracked separately (e.g., `claude-mcp` vs `claude-text`).
+
 ## Known Limitations
 
-1. Can't directly compare MCP vs Text Claude in the same game (different player instances) - needs mixed-mode support
-2. MCP mode only works with Claude models
+1. Reasoning models (o1, DeepSeek R1) may have different behavior due to extended thinking
+2. Some smaller models may struggle with complex game state parsing

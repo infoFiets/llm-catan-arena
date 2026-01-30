@@ -53,27 +53,24 @@ class ClaudePlayer(BaseLLMPlayer):
 
         Returns:
             Tuple of (response_text, cost, tokens_used)
+
+        Raises:
+            Exception: If the API call fails (will be retried by base class)
         """
-        try:
-            response = self.client.query(
-                model_id=self.model_id,
-                prompt=prompt,
-                system_prompt=(
-                    "You are an expert Settlers of Catan player. "
-                    "Analyze the game state carefully and choose the best action. "
-                    "Respond with the number of your chosen action and a brief explanation."
-                ),
-                temperature=self.temperature,
-                max_tokens=self.max_tokens
-            )
+        response = self.client.query(
+            model_id=self.model_id,
+            prompt=prompt,
+            system_prompt=(
+                "You are an expert Settlers of Catan player. "
+                "Analyze the game state carefully and choose the best action. "
+                "Respond with the number of your chosen action and a brief explanation."
+            ),
+            temperature=self.temperature,
+            max_tokens=self.max_tokens
+        )
 
-            return (
-                response.response,
-                response.cost,
-                response.total_tokens
-            )
-
-        except Exception as e:
-            self.log.error(f"Error querying Claude: {e}")
-            # Return fallback response
-            return ("1", 0.0, 0)
+        return (
+            response.response,
+            response.cost,
+            response.total_tokens
+        )

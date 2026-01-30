@@ -53,28 +53,25 @@ class GeminiPlayer(BaseLLMPlayer):
 
         Returns:
             Tuple of (response_text, cost, tokens_used)
+
+        Raises:
+            Exception: If the API call fails (will be retried by base class)
         """
-        try:
-            response = self.client.query(
-                model_id=self.model_id,
-                prompt=prompt,
-                system_prompt=(
-                    "You are a skilled Settlers of Catan player. "
-                    "Analyze the current game state and available actions carefully. "
-                    "Select the action that best advances your position towards victory. "
-                    "Respond with the action number and explain your strategic thinking."
-                ),
-                temperature=self.temperature,
-                max_tokens=self.max_tokens
-            )
+        response = self.client.query(
+            model_id=self.model_id,
+            prompt=prompt,
+            system_prompt=(
+                "You are a skilled Settlers of Catan player. "
+                "Analyze the current game state and available actions carefully. "
+                "Select the action that best advances your position towards victory. "
+                "Respond with the action number and explain your strategic thinking."
+            ),
+            temperature=self.temperature,
+            max_tokens=self.max_tokens
+        )
 
-            return (
-                response.response,
-                response.cost,
-                response.total_tokens
-            )
-
-        except Exception as e:
-            self.log.error(f"Error querying Gemini: {e}")
-            # Return fallback response
-            return ("1", 0.0, 0)
+        return (
+            response.response,
+            response.cost,
+            response.total_tokens
+        )

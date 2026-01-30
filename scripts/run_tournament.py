@@ -5,9 +5,13 @@ Tournament Runner for LLM Catan Arena.
 Run multiple Catan games with different LLM player combinations
 and analyze the results.
 
+Supports mixed-mode games where MCP and text players compete in the same game.
+Use mode suffixes (-mcp, -text) to specify per-player mode.
+
 Usage:
     python scripts/run_tournament.py --games 5
     python scripts/run_tournament.py --single-game claude gpt4 gemini haiku
+    python scripts/run_tournament.py --single-game claude-mcp claude-text gpt4-text gemini-text
     python scripts/run_tournament.py --analyze
 """
 
@@ -27,7 +31,7 @@ from src.elo import EloRating
 load_dotenv()
 
 
-def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json"):
+def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json", parallel: int = 1):
     """
     Run a full tournament using configuration file.
 
@@ -36,13 +40,16 @@ def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode
         config_path: Path to configuration file
         mode: Player mode ("text" or "mcp")
         prompt_format: Prompt format - "json", "json-minified", or "toon"
+        parallel: Number of parallel games to run
     """
     print("=" * 60)
     print(f"LLM CATAN ARENA - TOURNAMENT MODE ({mode.upper()}, format={prompt_format})")
+    if parallel > 1:
+        print(f"Running {parallel} games in parallel")
     print("=" * 60)
 
     runner = CatanGameRunner(config_path, mode=mode, prompt_format=prompt_format)
-    results = runner.run_tournament(num_games=num_games)
+    results = runner.run_tournament(num_games=num_games, parallel=parallel)
 
     print("\n" + "=" * 60)
     print(f"Tournament Complete: {len(results)} games played")
@@ -64,18 +71,23 @@ def run_single_game(players: list, config_path: str = "config.yaml", mode: str =
     Run a single game with specified players.
 
     Args:
-        players: List of 4 model keys (e.g., ['claude', 'gpt4', 'gemini', 'haiku'])
+        players: List of 4 player specs with optional mode suffix
+                 (e.g., ['claude-mcp', 'claude-text', 'gpt4', 'gemini'])
         config_path: Path to configuration file
-        mode: Player mode ("text" or "mcp")
+        mode: Default player mode ("text" or "mcp"), overridden by suffixes
         prompt_format: Prompt format - "json", "json-minified", or "toon"
     """
     if len(players) != 4:
         print("Error: Exactly 4 players required!")
-        print("Example: python scripts/run_tournament.py --single-game claude gpt4 gemini haiku")
+        print("Example: python scripts/run_tournament.py --single-game claude-mcp claude-text gpt4-text gemini-text")
         sys.exit(1)
 
+    # Check if any player has explicit mode suffix
+    has_mode_suffix = any(p.endswith('-mcp') or p.endswith('-text') for p in players)
+    mode_info = "mixed-mode" if has_mode_suffix else f"default={mode.upper()}"
+
     print("=" * 60)
-    print(f"LLM CATAN ARENA - SINGLE GAME MODE ({mode.upper()}, format={prompt_format})")
+    print(f"LLM CATAN ARENA - SINGLE GAME ({mode_info}, format={prompt_format})")
     print("=" * 60)
     print(f"Players: {players}\n")
 
@@ -138,7 +150,8 @@ def main():
         '--single-game',
         nargs=4,
         metavar=('PLAYER1', 'PLAYER2', 'PLAYER3', 'PLAYER4'),
-        help='Run a single game with specified players (e.g., claude gpt4 gemini haiku)'
+        help='Run a single game with specified players. Use mode suffix for mixed-mode games '
+             '(e.g., "claude-mcp claude-text gpt4-text gemini-text" for direct MCP vs text comparison)'
     )
 
     parser.add_argument(
@@ -157,7 +170,8 @@ def main():
         '--mode',
         choices=['text', 'mcp'],
         default='text',
-        help='Player mode: text (prompt/response) or mcp (tool calling)'
+        help='Default player mode: text (prompt/response) or mcp (tool calling). '
+             'Override per-player with suffixes like "claude-mcp" or "gpt4-text"'
     )
 
     parser.add_argument(
@@ -165,6 +179,13 @@ def main():
         choices=['json', 'json-minified', 'toon'],
         default='json',
         help='Prompt format: json (standard), json-minified (~33%% token reduction), toon (~53%% token reduction)'
+    )
+
+    parser.add_argument(
+        '--parallel',
+        type=int,
+        default=1,
+        help='Number of games to run in parallel (default: 1). Recommended: 2-4 to avoid rate limits.'
     )
 
     args = parser.parse_args()
@@ -177,7 +198,7 @@ def main():
     else:
         # Tournament mode
         num_games = args.games
-        run_tournament(num_games, args.config, args.mode, args.format)
+        run_tournament(num_games, args.config, args.mode, args.format, args.parallel)
 
 
 if __name__ == "__main__":

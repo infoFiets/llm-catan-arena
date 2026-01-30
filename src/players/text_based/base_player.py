@@ -7,6 +7,7 @@ Handles prompt generation, response parsing, and error handling.
 
 import logging
 import random
+import time
 from abc import ABC, abstractmethod
 from typing import List, Any, Dict
 
@@ -14,6 +15,10 @@ from catanatron.models.player import Player
 from llm_game_utils import GameResultLogger
 
 from ...prompt_builder import CatanPromptBuilder
+
+# Default retry configuration
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_RETRY_DELAY = 1.0  # seconds
 
 
 class BaseLLMPlayer(Player, ABC):
@@ -24,7 +29,7 @@ class BaseLLMPlayer(Player, ABC):
     - Prompt generation from game state
     - LLM query infrastructure
     - Response parsing and validation
-    - Error handling and fallback logic
+    - Error handling with retries
     - Game logging
     """
 
@@ -35,7 +40,9 @@ class BaseLLMPlayer(Player, ABC):
         session_id: str = None,
         logger: GameResultLogger = None,
         is_bot: bool = True,
-        prompt_format: str = "json"
+        prompt_format: str = "json",
+        max_retries: int = DEFAULT_MAX_RETRIES,
+        retry_delay: float = DEFAULT_RETRY_DELAY
     ):
         """
         Initialize base LLM player.
@@ -47,6 +54,8 @@ class BaseLLMPlayer(Player, ABC):
             logger: Optional GameResultLogger instance
             is_bot: Whether this is a bot player
             prompt_format: Prompt format - "json", "json-minified", or "toon"
+            max_retries: Maximum number of retries on API failure
+            retry_delay: Delay between retries in seconds
         """
         super().__init__(color, is_bot)
         self.model_name = model_name
@@ -58,6 +67,9 @@ class BaseLLMPlayer(Player, ABC):
         self.total_cost = 0.0
         self.total_tokens = 0
         self.move_count = 0
+        self.error_count = 0
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
 
         # Set up logging
         self.log = logging.getLogger(f"{self.__class__.__name__}:{color}")
@@ -74,8 +86,42 @@ class BaseLLMPlayer(Player, ABC):
 
         Returns:
             Tuple of (response_text, cost, tokens_used)
+
+        Raises:
+            Exception: If the API call fails (will be retried by query_llm_with_retry)
         """
         pass
+
+    def query_llm_with_retry(self, prompt: str) -> tuple[str, float, int, bool]:
+        """
+        Query LLM with automatic retry on failure.
+
+        Args:
+            prompt: The prompt to send to the LLM
+
+        Returns:
+            Tuple of (response_text, cost, tokens_used, was_error)
+            was_error is True if all retries failed and we're returning a fallback
+        """
+        last_error = None
+
+        for attempt in range(self.max_retries):
+            try:
+                response, cost, tokens = self.query_llm(prompt)
+                return (response, cost, tokens, False)
+            except Exception as e:
+                last_error = e
+                self.error_count += 1
+                self.log.warning(
+                    f"API call failed (attempt {attempt + 1}/{self.max_retries}): {e}"
+                )
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay * (attempt + 1))  # Exponential backoff
+
+        # All retries failed
+        self.log.error(f"All {self.max_retries} API attempts failed: {last_error}")
+        # Return fallback with flag indicating error
+        return ("1", 0.0, 0, True)
 
     def decide(self, game, playable_actions):
         """
@@ -100,17 +146,21 @@ class BaseLLMPlayer(Player, ABC):
                 recent_moves=self.recent_moves[-5:]  # Last 5 moves for context
             )
 
-            # Query LLM
+            # Query LLM with retry
             self.log.debug(f"Querying LLM with prompt (len={len(prompt)})")
-            response, cost, tokens = self.query_llm(prompt)
+            response, cost, tokens, was_error = self.query_llm_with_retry(prompt)
 
             # Update stats
             self.total_cost += cost
             self.total_tokens += tokens
             self.move_count += 1
 
-            # Parse response to select action
-            selected_action = self._parse_response(response, playable_actions)
+            # If API failed, use random action instead of parsing "1"
+            if was_error:
+                selected_action = self._fallback_action(playable_actions)
+            else:
+                # Parse response to select action
+                selected_action = self._parse_response(response, playable_actions)
 
             # Log the move
             if self.logger and self.session_id:
@@ -120,9 +170,10 @@ class BaseLLMPlayer(Player, ABC):
                     move_data={
                         "action": self._safe_action_str(selected_action),
                         "prompt_length": len(prompt),
-                        "response": response[:200],  # Truncate for storage
+                        "response": response[:200] if not was_error else "[API_ERROR]",
                         "cost": cost,
-                        "tokens": tokens
+                        "tokens": tokens,
+                        "api_error": was_error
                     },
                     turn_number=self.move_count
                 )
@@ -300,6 +351,7 @@ class BaseLLMPlayer(Player, ABC):
         self.total_cost = 0.0
         self.total_tokens = 0
         self.move_count = 0
+        self.error_count = 0
 
     def get_stats(self) -> Dict[str, Any]:
         """
@@ -314,6 +366,7 @@ class BaseLLMPlayer(Player, ABC):
             "total_cost": self.total_cost,
             "total_tokens": self.total_tokens,
             "move_count": self.move_count,
+            "error_count": self.error_count,
             "avg_cost_per_move": self.total_cost / self.move_count if self.move_count > 0 else 0
         }
 
