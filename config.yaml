@@ -1,38 +1,84 @@
 # LLM Model Configurations for Catan Arena
 # Model IDs must match OpenRouter's API model identifiers
+# Updated Jan 2026 with current models
 
 models:
+  # Anthropic - Claude 4.5 Series
   claude:
-    model_id: "anthropic/claude-3.5-sonnet"
-    name: "Claude 3.5 Sonnet"
+    model_id: "anthropic/claude-4.5-sonnet-20250929"
+    name: "Claude 4.5 Sonnet"
     temperature: 0.7
     max_tokens: 1000
     input_cost: 0.003   # per 1K tokens
     output_cost: 0.015  # per 1K tokens
 
-  gpt4:
-    model_id: "openai/gpt-4-turbo"
-    name: "GPT-4 Turbo"
+  claude-opus:
+    model_id: "anthropic/claude-4.5-opus-20251124"
+    name: "Claude 4.5 Opus"
     temperature: 0.7
     max_tokens: 1000
-    input_cost: 0.01    # per 1K tokens
-    output_cost: 0.03   # per 1K tokens
+    input_cost: 0.015   # per 1K tokens
+    output_cost: 0.075  # per 1K tokens
 
+  haiku:
+    model_id: "anthropic/claude-4.5-haiku-20251001"
+    name: "Claude 4.5 Haiku"
+    temperature: 0.7
+    max_tokens: 1000
+    input_cost: 0.00025  # per 1K tokens
+    output_cost: 0.00125 # per 1K tokens
+
+  # OpenAI - GPT-5 Series
+  gpt5:
+    model_id: "openai/gpt-5.2-20251211"
+    name: "GPT-5.2"
+    temperature: 0.7
+    max_tokens: 1000
+    input_cost: 0.010   # per 1K tokens
+    output_cost: 0.030  # per 1K tokens
+
+  gpt4:
+    model_id: "openai/gpt-4o"
+    name: "GPT-4o"
+    temperature: 0.7
+    max_tokens: 1000
+    input_cost: 0.005   # per 1K tokens
+    output_cost: 0.015  # per 1K tokens
+
+  # Google - Gemini Series
   gemini:
-    model_id: "google/gemini-pro"
-    name: "Gemini Pro"
+    model_id: "google/gemini-2.5-pro"
+    name: "Gemini 2.5 Pro"
     temperature: 0.7
     max_tokens: 1000
     input_cost: 0.00125  # per 1K tokens
     output_cost: 0.005   # per 1K tokens
 
-  haiku:
-    model_id: "anthropic/claude-3-haiku"
-    name: "Claude 3 Haiku"
+  gemini-flash:
+    model_id: "google/gemini-2.5-flash"
+    name: "Gemini 2.5 Flash"
     temperature: 0.7
     max_tokens: 1000
-    input_cost: 0.00025  # per 1K tokens
-    output_cost: 0.00125 # per 1K tokens
+    input_cost: 0.000075 # per 1K tokens
+    output_cost: 0.0003  # per 1K tokens
+
+  # DeepSeek - Extremely cost effective
+  deepseek:
+    model_id: "deepseek/deepseek-v3.2-20251201"
+    name: "DeepSeek V3.2"
+    temperature: 0.7
+    max_tokens: 1000
+    input_cost: 0.00014  # per 1K tokens
+    output_cost: 0.00028 # per 1K tokens
+
+  # Meta - Llama 4 (Open Source)
+  llama:
+    model_id: "meta-llama/llama-4-maverick-17b-128e-instruct"
+    name: "Llama 4 Maverick"
+    temperature: 0.7
+    max_tokens: 1000
+    input_cost: 0.0005   # per 1K tokens
+    output_cost: 0.0005  # per 1K tokens
 
 # Game Configuration
 game:
@@ -61,11 +107,20 @@ openrouter:
 # Tournament Configuration
 tournament:
   default_games: 5
-  parallel_games: 1  # Number of games to run simultaneously
+  parallel_games: 3  # Number of games to run simultaneously (2-4 recommended)
 
   # Which model combinations to test
   # Format: [player1, player2, player3, player4]
+  # Use suffixes (-mcp, -text) for mixed-mode games
   matchups:
-    - ["claude", "gpt4", "gemini", "haiku"]
-    - ["claude", "claude", "gpt4", "gpt4"]
-    - ["gemini", "gemini", "gemini", "haiku"]
+    - ["claude", "gpt5", "gemini", "haiku"]
+    - ["claude", "claude", "gpt5", "gpt5"]
+    - ["gemini", "deepseek", "llama", "haiku"]
+    # Mixed-mode: Compare MCP vs Text Claude directly
+    - ["claude-mcp", "claude-text", "gpt5-mcp", "gpt5-text"]
+
+# Elo Rating Configuration
+elo:
+  enabled: true
+  ratings_file: "data/elo_ratings.json"
+  k_factor: 32
