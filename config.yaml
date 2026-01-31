@@ -83,11 +83,11 @@ models:
 # Game Configuration
 game:
   num_players: 4
-  max_turns: 500
+  max_turns: 300      # Game ends if no winner by this turn (prevents infinite games)
   log_level: "INFO"
 
-  # Victory points needed to win (standard Catan is 10)
-  victory_points: 10
+  # Victory points needed to win (standard Catan is 10, use 8 for faster games)
+  victory_points: 8
 
   # Enable/disable game features
   enable_trading: true

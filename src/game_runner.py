@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Tuple, Optional
 from pathlib import Path
 
 import yaml
+import catanatron.game
 from catanatron.game import Game
 from llm_game_utils import OpenRouterClient, GameResultLogger
 
@@ -186,6 +187,7 @@ class CatanGameRunner:
     ):
         """Create text-based player."""
         # Determine player class based on model
+        # All models use OpenRouter, so any player class works - they're functionally identical
         if "claude" in model_key.lower() or "haiku" in model_key.lower() or "sonnet" in model_key.lower():
             return ClaudePlayer(
                 color=color,
@@ -214,9 +216,17 @@ class CatanGameRunner:
                 prompt_format=self.prompt_format
             )
         else:
-            # Default to random player for unknown models
-            self.log.warning(f"Unknown model type for {model_key}, using RandomPlayer")
-            return RandomPlayer(color=color)
+            # Use GPTPlayer as generic fallback for any OpenRouter model
+            # (DeepSeek, Llama, Mistral, Qwen, etc. all work the same way)
+            self.log.info(f"Using generic text player for {model_key}")
+            return GPTPlayer(
+                color=color,
+                client=self.client,
+                model_config=model_config,
+                session_id=session_id,
+                logger=self.logger,
+                prompt_format=self.prompt_format
+            )
 
     def _create_mcp_player(
         self,
@@ -288,12 +298,22 @@ class CatanGameRunner:
         ]
 
         try:
+            # Set turn limit from config (override Catanatron's default of 1000)
+            max_turns = self.config["game"].get("max_turns", 500)
+            original_limit = catanatron.game.TURNS_LIMIT
+            catanatron.game.TURNS_LIMIT = max_turns
+
             # Run the game
-            self.log.info(f"Creating game with {len(players)} players...")
-            game = Game(players)
+            vps_to_win = self.config["game"].get("victory_points", 10)
+            self.log.info(f"Creating game with {len(players)} players (max_turns={max_turns}, vps_to_win={vps_to_win})...")
+            game = Game(players, vps_to_win=vps_to_win)
             self.log.info("Game created, starting play()...")
             game.play()
-            self.log.info("Game.play() completed!")
+
+            # Restore original limit
+            catanatron.game.TURNS_LIMIT = original_limit
+
+            self.log.info(f"Game.play() completed! (turns: {game.state.num_turns})")
 
             # Determine winner
             winner_color = game.winning_color()

@@ -274,8 +274,13 @@ Available trade options:
         Returns:
             TOON-formatted prompt string
         """
-        # Get turn number from game state
-        turn = getattr(game_state, 'num_turns', 0) if game_state else 0
+        # Get turn number from game state (it's in game_state.state.num_turns)
+        turn = 0
+        if game_state:
+            if hasattr(game_state, 'state') and hasattr(game_state.state, 'num_turns'):
+                turn = game_state.state.num_turns
+            elif hasattr(game_state, 'num_turns'):
+                turn = game_state.num_turns
 
         # Extract resources with consistent ordering
         res = player_state.get("resources", {})

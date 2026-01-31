@@ -692,9 +692,9 @@ models:
 # =============================================================================
 game:
   num_players: 4
-  max_turns: 500
+  max_turns: 300      # Game ends if no winner by this turn (prevents infinite games)
   log_level: "INFO"
-  victory_points: 10
+  victory_points: 8   # Faster games (standard Catan is 10)
   enable_trading: true
   enable_robber: true
 
