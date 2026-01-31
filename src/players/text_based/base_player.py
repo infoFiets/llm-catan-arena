@@ -7,6 +7,7 @@ Handles prompt generation, response parsing, and error handling.
 
 import logging
 import random
+import re
 import time
 from abc import ABC, abstractmethod
 from typing import List, Any, Dict
@@ -309,18 +310,36 @@ class BaseLLMPlayer(Player, ABC):
             Selected action from playable_actions
         """
         try:
-            # Try to extract number from response (1-indexed in prompt)
-            response_lower = response.lower().strip()
+            response_text = response.strip()
+            num_actions = len(playable_actions)
 
-            # Look for number in response
-            for i, _ in enumerate(playable_actions):
-                # Check for "1", "1.", "option 1", etc.
-                if f"{i+1}" in response_lower.split()[0:3]:  # Check first few words
-                    return playable_actions[i]
+            # Pattern 1: Look for "Action: N", "Action N", "**Action: N**", etc.
+            action_pattern = re.search(r'\*{0,2}[Aa]ction[:\s]*(\d+)\*{0,2}', response_text)
+            if action_pattern:
+                action_num = int(action_pattern.group(1))
+                if 1 <= action_num <= num_actions:
+                    return playable_actions[action_num - 1]
 
-            # If no clear number, try to match action description
+            # Pattern 2: Look for standalone number at start of response or after newline
+            # Matches "1.", "1)", "1:", "1 -", or just "1" at line start
+            line_start_pattern = re.search(r'(?:^|\n)\s*(\d+)[\.\)\:\s\-]', response_text)
+            if line_start_pattern:
+                action_num = int(line_start_pattern.group(1))
+                if 1 <= action_num <= num_actions:
+                    return playable_actions[action_num - 1]
+
+            # Pattern 3: Find first standalone number in reasonable range
+            all_numbers = re.findall(r'\b(\d+)\b', response_text[:500])  # Check first 500 chars
+            for num_str in all_numbers:
+                num = int(num_str)
+                if 1 <= num <= num_actions:
+                    return playable_actions[num - 1]
+
+            # Pattern 4: Try to match action description keywords
+            response_lower = response_text.lower()
             for i, action in enumerate(playable_actions):
                 action_str = self._safe_action_str(action).lower()
+                # Check for key parts of action description
                 if action_str in response_lower:
                     return playable_actions[i]
 
