@@ -5,7 +5,7 @@ LLM player implementation using GPT models via OpenRouter.
 """
 
 from llm_game_utils import OpenRouterClient, GameResultLogger
-from .base_player import BaseLLMPlayer
+from .base_player import BaseLLMPlayer, CATAN_SYSTEM_PROMPT
 
 
 class GPTPlayer(BaseLLMPlayer):
@@ -22,7 +22,8 @@ class GPTPlayer(BaseLLMPlayer):
         model_config: dict,
         session_id: str = None,
         logger: GameResultLogger = None,
-        prompt_format: str = "json"
+        prompt_format: str = "json",
+        mode: str = "text"
     ):
         """
         Initialize GPT player.
@@ -35,9 +36,10 @@ class GPTPlayer(BaseLLMPlayer):
             session_id: Optional session ID for logging
             logger: Optional GameResultLogger instance
             prompt_format: Prompt format - "json", "json-minified", or "toon"
+            mode: Player mode - "text" or "mcp" (for display purposes)
         """
         model_name = model_config.get("name", "GPT-4")
-        super().__init__(color, model_name, session_id, logger, prompt_format=prompt_format)
+        super().__init__(color, model_name, session_id, logger, prompt_format=prompt_format, mode=mode)
 
         self.client = client
         self.model_id = model_config["model_id"]
@@ -60,12 +62,7 @@ class GPTPlayer(BaseLLMPlayer):
         response = self.client.query(
             model_id=self.model_id,
             prompt=prompt,
-            system_prompt=(
-                "You are an expert Settlers of Catan player with strong strategic thinking. "
-                "Carefully evaluate each available action and choose the one that maximizes "
-                "your chances of winning. Respond with the number of your chosen action "
-                "followed by your reasoning."
-            ),
+            system_prompt=CATAN_SYSTEM_PROMPT,
             temperature=self.temperature,
             max_tokens=self.max_tokens
         )

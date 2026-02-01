@@ -103,6 +103,11 @@ class CatanGameRunner:
         # MCP server initialized lazily when needed
         self._mcp_server = None
 
+        # Set global turn limit once (avoid race conditions with parallel games)
+        max_turns = self.config["game"].get("max_turns", 300)
+        catanatron.game.TURNS_LIMIT = max_turns
+        self.log.info(f"Set global TURNS_LIMIT to {max_turns}")
+
         # Initialize Elo rating system
         self.elo = EloRating(
             ratings_file=self.config.get("elo", {}).get("ratings_file", "data/elo_ratings.json"),
@@ -195,7 +200,8 @@ class CatanGameRunner:
                 model_config=model_config,
                 session_id=session_id,
                 logger=self.logger,
-                prompt_format=self.prompt_format
+                prompt_format=self.prompt_format,
+                mode="text"
             )
         elif "gpt" in model_key.lower():
             return GPTPlayer(
@@ -204,7 +210,8 @@ class CatanGameRunner:
                 model_config=model_config,
                 session_id=session_id,
                 logger=self.logger,
-                prompt_format=self.prompt_format
+                prompt_format=self.prompt_format,
+                mode="text"
             )
         elif "gemini" in model_key.lower():
             return GeminiPlayer(
@@ -213,7 +220,8 @@ class CatanGameRunner:
                 model_config=model_config,
                 session_id=session_id,
                 logger=self.logger,
-                prompt_format=self.prompt_format
+                prompt_format=self.prompt_format,
+                mode="text"
             )
         else:
             # Use GPTPlayer as generic fallback for any OpenRouter model
@@ -225,7 +233,8 @@ class CatanGameRunner:
                 model_config=model_config,
                 session_id=session_id,
                 logger=self.logger,
-                prompt_format=self.prompt_format
+                prompt_format=self.prompt_format,
+                mode="text"
             )
 
     def _create_mcp_player(
@@ -261,6 +270,118 @@ class CatanGameRunner:
             mcp_server=self.mcp_server
         )
 
+    def _collect_game_results(
+        self,
+        game,
+        players: List,
+        player_specs: List[str],
+        session_id: str,
+        ended_early: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Collect results from a game (completed or ended early).
+
+        Args:
+            game: Catanatron game object
+            players: List of player instances
+            player_specs: List of player specifications
+            session_id: Session ID for logging
+            ended_early: Whether the game was terminated early
+
+        Returns:
+            Dictionary with game results
+        """
+        colors = COLORS
+
+        # Collect scores
+        scores = {}
+        total_cost = 0.0
+        total_tokens = 0
+
+        for player in players:
+            player_key = f"{player.model_name}:{player.color}"
+
+            # Get victory points using indexed player_state
+            player_index = game.state.color_to_index[player.color]
+            vp = game.state.player_state.get(f"P{player_index}_ACTUAL_VICTORY_POINTS", 0)
+
+            scores[player_key] = vp
+
+            # Collect stats from LLM players
+            if hasattr(player, 'get_stats'):
+                stats = player.get_stats()
+                total_cost += stats.get("total_cost", 0)
+                total_tokens += stats.get("total_tokens", 0)
+
+        # Determine winner
+        if ended_early:
+            # Winner is player with highest VP (or first in case of tie)
+            max_vp = max(scores.values())
+            winner_key = next(k for k, v in scores.items() if v == max_vp)
+            winner_color = winner_key.split(":")[-1]
+            winner_spec = player_specs[colors.index(winner_color)]
+            winner_label = f"{winner_spec}:{winner_color} (EARLY)"
+        else:
+            winner_color = game.winning_color()
+            if winner_color:
+                # Natural victory - someone reached VP target
+                winner_spec = player_specs[colors.index(winner_color)]
+                winner_label = f"{winner_spec}:{winner_color}"
+            else:
+                # Turn limit reached - winner is highest VP
+                max_vp = max(scores.values())
+                winner_key = next(k for k, v in scores.items() if v == max_vp)
+                winner_color = winner_key.split(":")[-1]
+                winner_spec = player_specs[colors.index(winner_color)]
+                winner_label = f"{winner_spec}:{winner_color} (TURN_LIMIT)"
+
+        self.logger.end_session(
+            session_id=session_id,
+            winner=winner_label,
+            final_scores=scores
+        )
+
+        # Get summary
+        summary = self.logger.get_session_summary(session_id)
+
+        results = {
+            "session_id": session_id,
+            "winner": winner_spec,
+            "winner_color": winner_color if winner_color else None,
+            "scores": scores,
+            "total_cost": total_cost,
+            "total_tokens": total_tokens,
+            "player_specs": player_specs,
+            "full_summary": summary,
+            "ended_early": ended_early
+        }
+
+        # Update Elo ratings
+        elo_changes = {}
+        if self.track_elo:
+            # Create scores dict with mode-aware player IDs
+            elo_scores = {}
+            for player_key, vp in scores.items():
+                # player_key is like "Claude 3.5 Sonnet:RED"
+                # We want to track by model_key-mode, e.g., "claude-text" or "claude-mcp"
+                color = player_key.split(":")[-1]
+                color_idx = colors.index(color)
+                player = players[color_idx]
+                # Get base model key from player_spec
+                model_key, _ = parse_player_spec(player_specs[color_idx])
+                # Use the effective mode stored on the player
+                effective_mode = getattr(player, '_effective_mode', self.default_mode)
+                player_id = f"{model_key}-{effective_mode}"
+                elo_scores[player_id] = vp
+
+            elo_changes = self.elo.update_ratings(
+                {"scores": elo_scores},
+                session_id=session_id
+            )
+            results["elo_changes"] = elo_changes
+
+        return results, elo_changes
+
     def run_game(self, player_specs: List[str], game_id: str = None) -> Dict[str, Any]:
         """
         Run a single Catan game.
@@ -272,6 +393,10 @@ class CatanGameRunner:
 
         Returns:
             Dictionary with game results
+
+        Note:
+            Press Ctrl+C once to end the game early (saves results with current VPs).
+            Press Ctrl+C twice to force quit without saving.
         """
         if len(player_specs) != 4:
             raise ValueError("Exactly 4 players required for Catan")
@@ -289,6 +414,7 @@ class CatanGameRunner:
 
         self.log.info(f"Starting game {session_id}")
         self.log.info(f"Players: {player_specs}")
+        self.log.info("Press Ctrl+C to end game early (results will be saved)")
 
         # Create players
         colors = COLORS  # RED, BLUE, WHITE, ORANGE
@@ -297,96 +423,27 @@ class CatanGameRunner:
             for spec, color in zip(player_specs, colors)
         ]
 
-        try:
-            # Set turn limit from config (override Catanatron's default of 1000)
-            max_turns = self.config["game"].get("max_turns", 500)
-            original_limit = catanatron.game.TURNS_LIMIT
-            catanatron.game.TURNS_LIMIT = max_turns
+        game = None
 
-            # Run the game
+        try:
+            # Run the game (TURNS_LIMIT set globally in __init__ to avoid race conditions)
             vps_to_win = self.config["game"].get("victory_points", 10)
+            max_turns = self.config["game"].get("max_turns", 300)
             self.log.info(f"Creating game with {len(players)} players (max_turns={max_turns}, vps_to_win={vps_to_win})...")
             game = Game(players, vps_to_win=vps_to_win)
             self.log.info("Game created, starting play()...")
             game.play()
 
-            # Restore original limit
-            catanatron.game.TURNS_LIMIT = original_limit
-
             self.log.info(f"Game.play() completed! (turns: {game.state.num_turns})")
 
-            # Determine winner
-            winner_color = game.winning_color()
-            winner_spec = player_specs[colors.index(winner_color)] if winner_color else None
-
-            # Collect scores
-            scores = {}
-            total_cost = 0.0
-            total_tokens = 0
-
-            for player in players:
-                player_key = f"{player.model_name}:{player.color}"
-
-                # Get victory points using indexed player_state
-                player_index = game.state.color_to_index[player.color]
-                vp = game.state.player_state.get(f"P{player_index}_ACTUAL_VICTORY_POINTS", 0)
-
-                scores[player_key] = vp
-
-                # Collect stats from LLM players
-                if hasattr(player, 'get_stats'):
-                    stats = player.get_stats()
-                    total_cost += stats.get("total_cost", 0)
-                    total_tokens += stats.get("total_tokens", 0)
-
-            # Log results
-            self.logger.end_session(
-                session_id=session_id,
-                winner=f"{winner_spec}:{winner_color}" if winner_spec else "Draw",
-                final_scores=scores
+            # Collect results for completed game
+            results, elo_changes = self._collect_game_results(
+                game, players, player_specs, session_id, ended_early=False
             )
 
-            # Get summary
-            summary = self.logger.get_session_summary(session_id)
-
-            results = {
-                "session_id": session_id,
-                "winner": winner_spec,
-                "winner_color": winner_color if winner_color else None,
-                "scores": scores,
-                "total_cost": total_cost,
-                "total_tokens": total_tokens,
-                "player_specs": player_specs,
-                "full_summary": summary
-            }
-
-            # Update Elo ratings
-            elo_changes = {}
-            if self.track_elo:
-                # Create scores dict with mode-aware player IDs
-                elo_scores = {}
-                for player_key, vp in scores.items():
-                    # player_key is like "Claude 3.5 Sonnet:RED"
-                    # We want to track by model_key-mode, e.g., "claude-text" or "claude-mcp"
-                    color = player_key.split(":")[-1]
-                    color_idx = colors.index(color)
-                    player = players[color_idx]
-                    # Get base model key from player_spec
-                    model_key, _ = parse_player_spec(player_specs[color_idx])
-                    # Use the effective mode stored on the player
-                    effective_mode = getattr(player, '_effective_mode', self.default_mode)
-                    player_id = f"{model_key}-{effective_mode}"
-                    elo_scores[player_id] = vp
-
-                elo_changes = self.elo.update_ratings(
-                    {"scores": elo_scores},
-                    session_id=session_id
-                )
-                results["elo_changes"] = elo_changes
-
-            self.log.info(f"Game {session_id} completed. Winner: {winner_spec}")
-            self.log.info(f"Scores: {scores}")
-            self.log.info(f"Total cost: ${total_cost:.4f}, Total tokens: {total_tokens}")
+            self.log.info(f"Game {session_id} completed. Winner: {results['winner']}")
+            self.log.info(f"Scores: {results['scores']}")
+            self.log.info(f"Total cost: ${results['total_cost']:.4f}, Total tokens: {results['total_tokens']}")
 
             if elo_changes:
                 for player_id, change in elo_changes.items():
@@ -394,6 +451,44 @@ class CatanGameRunner:
                     self.log.info(f"Elo: {player_id} {change['old']:.0f} -> {change['new']:.0f} ({change_str})")
 
             return results
+
+        except KeyboardInterrupt:
+            # Handle early termination gracefully
+            print("\n")  # Clean line after ^C
+            self.log.warning("Game interrupted! Ending early and saving results...")
+
+            if game is not None:
+                try:
+                    turns_played = game.state.num_turns
+                    self.log.info(f"Game ended after {turns_played} turns")
+
+                    # Collect results for early-ended game
+                    results, elo_changes = self._collect_game_results(
+                        game, players, player_specs, session_id, ended_early=True
+                    )
+
+                    self.log.info(f"Game {session_id} ended early. Winner (by VP): {results['winner']}")
+                    self.log.info(f"Final scores: {results['scores']}")
+                    self.log.info(f"Total cost: ${results['total_cost']:.4f}, Total tokens: {results['total_tokens']}")
+
+                    if elo_changes:
+                        for player_id, change in elo_changes.items():
+                            change_str = f"+{change['change']:.1f}" if change['change'] >= 0 else f"{change['change']:.1f}"
+                            self.log.info(f"Elo: {player_id} {change['old']:.0f} -> {change['new']:.0f} ({change_str})")
+
+                    self.log.info("Results saved successfully. Press Ctrl+C again to force quit.")
+                    return results
+
+                except KeyboardInterrupt:
+                    # Second Ctrl+C - force quit
+                    self.log.warning("Force quit requested. Exiting without saving.")
+                    raise
+                except Exception as e:
+                    self.log.error(f"Error saving early results: {e}")
+                    raise
+            else:
+                self.log.warning("Game not started yet, nothing to save.")
+                raise
 
         except Exception as e:
             self.log.error(f"Error running game: {e}", exc_info=True)
@@ -407,6 +502,29 @@ class CatanGameRunner:
             except:
                 pass
             raise
+
+    def _format_matchup(self, matchup: List[str]) -> str:
+        """
+        Format a matchup with full model names and modes for logging.
+
+        Args:
+            matchup: List of player specs (e.g., ['claude', 'gpt5-mcp'])
+
+        Returns:
+            Formatted string like "Claude 4.5 Sonnet (TEXT) vs GPT-5 (MCP) vs ..."
+        """
+        parts = []
+        for spec in matchup:
+            model_key, mode_override = parse_player_spec(spec)
+            effective_mode = mode_override if mode_override else self.default_mode
+
+            # Get full model name from config
+            model_config = self.config["models"].get(model_key, {})
+            model_name = model_config.get("name", model_key)
+
+            parts.append(f"{model_name} ({effective_mode.upper()})")
+
+        return " vs ".join(parts)
 
     def run_tournament(
         self,
@@ -459,7 +577,8 @@ class CatanGameRunner:
         total_games = len(matchups) * num_games
 
         for i, matchup in enumerate(matchups, 1):
-            self.log.info(f"\nMatchup {i}/{len(matchups)}: {matchup}")
+            matchup_desc = self._format_matchup(matchup)
+            self.log.info(f"\nMatchup {i}/{len(matchups)}: {matchup_desc}")
 
             for game_num in range(num_games):
                 games_completed += 1
@@ -476,7 +595,13 @@ class CatanGameRunner:
                     total_tokens += game_tokens
 
                     winner = result.get("winner", "N/A")
-                    self.log.info(f"    -> Winner: {winner} | Cost: ${game_cost:.4f} | Tokens: {game_tokens}")
+                    # Get winner's full model name
+                    if winner and winner != "N/A":
+                        winner_config = self.config["models"].get(winner, {})
+                        winner_name = winner_config.get("name", winner)
+                    else:
+                        winner_name = winner
+                    self.log.info(f"    -> Winner: {winner_name} | Cost: ${game_cost:.4f} | Tokens: {game_tokens}")
                     self.log.info(f"    -> Running total: ${total_cost:.4f} ({games_completed}/{total_games} games)")
 
                 except Exception as e:
@@ -520,6 +645,10 @@ class CatanGameRunner:
             """Run a single game and return result."""
             nonlocal games_completed, total_cost, total_tokens
 
+            thread_id = threading.current_thread().name
+            matchup_desc = self._format_matchup(game_info['matchup'])
+            self.log.info(f"[Thread {thread_id}] Starting game {game_info['game_id']}: {matchup_desc}")
+
             try:
                 result = self.run_game(
                     game_info["matchup"],
@@ -537,9 +666,15 @@ class CatanGameRunner:
                     total_tokens += game_tokens
 
                     winner = result.get("winner", "N/A")
+                    # Get winner's full model name
+                    if winner and winner != "N/A":
+                        winner_config = self.config["models"].get(winner, {})
+                        winner_name = winner_config.get("name", winner)
+                    else:
+                        winner_name = winner
                     self.log.info(
-                        f"[{games_completed}/{total_games}] {game_info['matchup']} -> "
-                        f"Winner: {winner} | Cost: ${game_cost:.4f} | "
+                        f"[{games_completed}/{total_games}] Game {game_info['game_id']} -> "
+                        f"Winner: {winner_name} | Cost: ${game_cost:.4f} | "
                         f"Running total: ${total_cost:.4f}"
                     )
 
@@ -552,7 +687,13 @@ class CatanGameRunner:
                 return None
 
         # Run games in parallel
-        self.log.info(f"Starting {total_games} games with {max_workers} workers...")
+        self.log.info(f"Submitting {total_games} games to {max_workers} workers")
+        # Show unique matchups with full details
+        unique_matchups = set(tuple(g['matchup']) for g in games_to_run)
+        for matchup in unique_matchups:
+            matchup_desc = self._format_matchup(list(matchup))
+            count = sum(1 for g in games_to_run if tuple(g['matchup']) == matchup)
+            self.log.info(f"  - {matchup_desc} x{count} games")
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {executor.submit(run_single_game, game): game for game in games_to_run}
