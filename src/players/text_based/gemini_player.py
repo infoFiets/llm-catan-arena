@@ -5,7 +5,7 @@ LLM player implementation using Gemini models via OpenRouter.
 """
 
 from llm_game_utils import OpenRouterClient, GameResultLogger
-from .base_player import BaseLLMPlayer
+from .base_player import BaseLLMPlayer, CATAN_SYSTEM_PROMPT
 
 
 class GeminiPlayer(BaseLLMPlayer):
@@ -22,7 +22,8 @@ class GeminiPlayer(BaseLLMPlayer):
         model_config: dict,
         session_id: str = None,
         logger: GameResultLogger = None,
-        prompt_format: str = "json"
+        prompt_format: str = "json",
+        mode: str = "text"
     ):
         """
         Initialize Gemini player.
@@ -35,9 +36,10 @@ class GeminiPlayer(BaseLLMPlayer):
             session_id: Optional session ID for logging
             logger: Optional GameResultLogger instance
             prompt_format: Prompt format - "json", "json-minified", or "toon"
+            mode: Player mode - "text" or "mcp" (for display purposes)
         """
         model_name = model_config.get("name", "Gemini")
-        super().__init__(color, model_name, session_id, logger, prompt_format=prompt_format)
+        super().__init__(color, model_name, session_id, logger, prompt_format=prompt_format, mode=mode)
 
         self.client = client
         self.model_id = model_config["model_id"]
@@ -60,12 +62,7 @@ class GeminiPlayer(BaseLLMPlayer):
         response = self.client.query(
             model_id=self.model_id,
             prompt=prompt,
-            system_prompt=(
-                "You are a skilled Settlers of Catan player. "
-                "Analyze the current game state and available actions carefully. "
-                "Select the action that best advances your position towards victory. "
-                "Respond with the action number and explain your strategic thinking."
-            ),
+            system_prompt=CATAN_SYSTEM_PROMPT,
             temperature=self.temperature,
             max_tokens=self.max_tokens
         )

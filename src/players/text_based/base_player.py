@@ -21,6 +21,36 @@ from ...prompt_builder import CatanPromptBuilder
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_RETRY_DELAY = 1.0  # seconds
 
+# Enhanced system prompt with Catan rules and strategy
+CATAN_SYSTEM_PROMPT = """You are an expert Settlers of Catan player. Your goal is to be the first to reach the victory point target.
+
+VICTORY POINTS:
+- Settlement = 1 VP (max 5)
+- City = 2 VP (max 4)
+- Longest Road (5+ roads) = 2 VP
+- Largest Army (3+ knights played) = 2 VP
+- Victory Point dev cards = 1 VP each
+
+BUILDING COSTS:
+- Road: 1 wood + 1 brick
+- Settlement: 1 wood + 1 brick + 1 wheat + 1 sheep
+- City: 3 wheat + 2 ore (upgrades a settlement)
+- Dev Card: 1 wheat + 1 sheep + 1 ore
+
+CRITICAL END-GAME STRATEGY (when at 7+ VP):
+⚠️ CLOSE OUT THE GAME - Don't stall! If you can gain VP this turn, DO IT:
+1. Have 3 wheat + 2 ore? → BUILD CITY NOW (instant +1 VP)
+2. Have wood+brick+wheat+sheep? → BUILD SETTLEMENT NOW
+3. One road from longest road? → BUILD THAT ROAD
+4. Have knight card + would give largest army? → PLAY IT NOW
+5. Have VP dev cards + enough to win? → You've won!
+
+DON'T end your turn with resources that could become VP!
+DON'T buy dev cards when you could build something for VP!
+Trade aggressively (even 4:1) to get resources you need to close out.
+
+Respond with ONLY the action number and a brief explanation."""
+
 
 class BaseLLMPlayer(Player, ABC):
     """
@@ -43,7 +73,8 @@ class BaseLLMPlayer(Player, ABC):
         is_bot: bool = True,
         prompt_format: str = "json",
         max_retries: int = DEFAULT_MAX_RETRIES,
-        retry_delay: float = DEFAULT_RETRY_DELAY
+        retry_delay: float = DEFAULT_RETRY_DELAY,
+        mode: str = "text"
     ):
         """
         Initialize base LLM player.
@@ -57,9 +88,11 @@ class BaseLLMPlayer(Player, ABC):
             prompt_format: Prompt format - "json", "json-minified", or "toon"
             max_retries: Maximum number of retries on API failure
             retry_delay: Delay between retries in seconds
+            mode: Player mode - "text" or "mcp" (for display purposes)
         """
         super().__init__(color, is_bot)
         self.model_name = model_name
+        self.mode = mode
         self.session_id = session_id
         self.logger = logger
         self.prompt_format = prompt_format
@@ -155,6 +188,9 @@ class BaseLLMPlayer(Player, ABC):
             self.total_cost += cost
             self.total_tokens += tokens
             self.move_count += 1
+
+            # Log game progress
+            self._log_game_progress(game)
 
             # If API failed, use random action instead of parsing "1"
             if was_error:
@@ -363,6 +399,35 @@ class BaseLLMPlayer(Player, ABC):
         """
         self.log.warning("Using fallback random action")
         return random.choice(playable_actions)
+
+    def _log_game_progress(self, game) -> None:
+        """
+        Log current game progress with all players' VPs and running cost.
+
+        Args:
+            game: Catanatron game object
+        """
+        try:
+            turn_num = game.state.num_turns
+
+            # Build VP string for all players
+            vp_parts = []
+            for color, player_index in game.state.color_to_index.items():
+                vp = game.state.player_state.get(f"P{player_index}_ACTUAL_VICTORY_POINTS", 0)
+                vp_parts.append(f"{color}:{vp}vp")
+
+            vp_str = " ".join(vp_parts)
+
+            # Format current player info with mode
+            mode_str = f" ({self.mode.upper()})" if hasattr(self, 'mode') else ""
+            player_info = f"{self.color}{mode_str} moving"
+
+            # Log the progress line (flush for immediate output when piped)
+            print(f"[Turn {turn_num}] {vp_str} | {player_info} | ${self.total_cost:.2f}", flush=True)
+
+        except Exception as e:
+            # Don't let logging errors break the game
+            self.log.debug(f"Error logging game progress: {e}")
 
     def reset_state(self):
         """Reset state between games."""

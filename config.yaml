@@ -83,10 +83,10 @@ models:
 # Game Configuration
 game:
   num_players: 4
-  max_turns: 300      # Game ends if no winner by this turn (prevents infinite games)
+  max_turns: 200      # Catanatron turn limit - balance between realism and speed
   log_level: "INFO"
 
-  # Victory points needed to win (standard Catan is 10, use 8 for faster games)
+  # Victory points needed to win (8 for faster games, 10 for standard Catan)
   victory_points: 8
 
   # Enable/disable game features

@@ -66,9 +66,9 @@ def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode
     print(elo.format_leaderboard())
 
 
-def run_single_game(players: list, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json"):
+def run_single_game(players: list, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json", num_games: int = 1, parallel: int = 1):
     """
-    Run a single game with specified players.
+    Run one or more games with specified players.
 
     Args:
         players: List of 4 player specs with optional mode suffix
@@ -76,6 +76,8 @@ def run_single_game(players: list, config_path: str = "config.yaml", mode: str =
         config_path: Path to configuration file
         mode: Default player mode ("text" or "mcp"), overridden by suffixes
         prompt_format: Prompt format - "json", "json-minified", or "toon"
+        num_games: Number of games to run with this matchup
+        parallel: Number of games to run in parallel
     """
     if len(players) != 4:
         print("Error: Exactly 4 players required!")
@@ -86,12 +88,56 @@ def run_single_game(players: list, config_path: str = "config.yaml", mode: str =
     has_mode_suffix = any(p.endswith('-mcp') or p.endswith('-text') for p in players)
     mode_info = "mixed-mode" if has_mode_suffix else f"default={mode.upper()}"
 
+    runner = CatanGameRunner(config_path, mode=mode, prompt_format=prompt_format)
+
+    # If running multiple games, use tournament infrastructure
+    if num_games > 1:
+        print("=" * 60)
+        print(f"LLM CATAN ARENA - {num_games} GAMES ({mode_info}, format={prompt_format})")
+        if parallel > 1:
+            print(f"Running {parallel} games in parallel")
+        print("=" * 60)
+        print(f"Matchup: {players}\n", flush=True)
+
+        # Use run_tournament with single matchup
+        results = runner.run_tournament(matchups=[players], num_games=num_games, parallel=parallel)
+
+        print("\n" + "=" * 60)
+        print(f"RESULTS: {len(results)} games completed")
+        print("=" * 60)
+
+        # Aggregate stats
+        total_cost = sum(r.get('total_cost', 0) for r in results)
+        total_tokens = sum(r.get('total_tokens', 0) for r in results)
+
+        # Count wins
+        win_counts = {}
+        for r in results:
+            winner = r.get('winner', 'N/A')
+            win_counts[winner] = win_counts.get(winner, 0) + 1
+
+        print("Win counts:")
+        for player, wins in sorted(win_counts.items(), key=lambda x: -x[1]):
+            print(f"  {player}: {wins} wins")
+
+        print(f"\nTotal Cost: ${total_cost:.4f}")
+        print(f"Total Tokens: {total_tokens}")
+        print(f"Avg Cost/Game: ${total_cost/len(results):.4f}")
+
+        # Show Elo leaderboard
+        print("\n")
+        elo = EloRating()
+        print(elo.format_leaderboard())
+
+        print("=" * 60)
+        return
+
+    # Single game mode
     print("=" * 60)
     print(f"LLM CATAN ARENA - SINGLE GAME ({mode_info}, format={prompt_format})")
     print("=" * 60)
-    print(f"Players: {players}\n")
+    print(f"Players: {players}\n", flush=True)
 
-    runner = CatanGameRunner(config_path, mode=mode, prompt_format=prompt_format)
     result = runner.run_game(players)
 
     print("\n" + "=" * 60)
@@ -194,7 +240,8 @@ def main():
     if args.analyze:
         run_analysis()
     elif args.single_game:
-        run_single_game(args.single_game, args.config, args.mode, args.format)
+        num_games = args.games if args.games else 1
+        run_single_game(args.single_game, args.config, args.mode, args.format, num_games, args.parallel)
     else:
         # Tournament mode
         num_games = args.games
