@@ -3,8 +3,10 @@ Elo Rating System for LLM Catan Arena.
 
 Implements multiplayer Elo for 4-player Catan games.
 Supports persistent ratings across sessions.
+Uses file locking for safe concurrent updates.
 """
 
+import fcntl
 import json
 import math
 import logging
@@ -74,20 +76,67 @@ class EloRating:
             self.log.info("No existing ratings file, starting fresh")
 
     def _save_ratings(self):
-        """Save ratings to file."""
+        """Save ratings to file with file locking for concurrent access."""
         self.ratings_file.parent.mkdir(parents=True, exist_ok=True)
 
-        data = {
-            "ratings": self.ratings,
-            "history": self.history,
-            "game_counts": dict(self.game_counts),
-            "last_updated": datetime.now().isoformat()
-        }
+        # Create lock file
+        lock_file = self.ratings_file.with_suffix('.lock')
 
-        with open(self.ratings_file, 'w') as f:
-            json.dump(data, f, indent=2)
+        try:
+            # Acquire exclusive lock
+            with open(lock_file, 'w') as lock:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
 
-        self.log.debug(f"Saved ratings to {self.ratings_file}")
+                try:
+                    # Re-read current state (may have changed since we loaded)
+                    current_data = {"ratings": {}, "history": [], "game_counts": {}}
+                    if self.ratings_file.exists():
+                        try:
+                            with open(self.ratings_file, 'r') as f:
+                                current_data = json.load(f)
+                        except (json.JSONDecodeError, IOError):
+                            pass
+
+                    # Merge our ratings with current (our values take precedence)
+                    merged_ratings = current_data.get("ratings", {})
+                    merged_ratings.update(self.ratings)
+
+                    # Merge game counts
+                    merged_counts = current_data.get("game_counts", {})
+                    for player, count in self.game_counts.items():
+                        merged_counts[player] = max(merged_counts.get(player, 0), count)
+
+                    # Append new history entries (deduplicate by session_id if present)
+                    existing_sessions = {
+                        h.get("session_id") for h in current_data.get("history", [])
+                        if h.get("session_id")
+                    }
+                    merged_history = current_data.get("history", [])
+                    for entry in self.history:
+                        if entry.get("session_id") not in existing_sessions:
+                            merged_history.append(entry)
+                            if entry.get("session_id"):
+                                existing_sessions.add(entry.get("session_id"))
+
+                    # Write merged data
+                    data = {
+                        "ratings": merged_ratings,
+                        "history": merged_history,
+                        "game_counts": merged_counts,
+                        "last_updated": datetime.now().isoformat()
+                    }
+
+                    with open(self.ratings_file, 'w') as f:
+                        json.dump(data, f, indent=2)
+
+                    self.log.debug(f"Saved ratings to {self.ratings_file}")
+
+                finally:
+                    # Release lock
+                    fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+
+        except Exception as e:
+            self.log.error(f"Error saving ratings with lock: {e}")
 
     def get_rating(self, player_id: str) -> float:
         """
@@ -345,6 +394,11 @@ class EloRating:
         self.ratings = {}
         self.history = []
         self.game_counts = defaultdict(int)
+
+        # Delete the file first to prevent _save_ratings from merging with old data
+        if self.ratings_file.exists():
+            self.ratings_file.unlink()
+
         self._save_ratings()
         self.log.info("All ratings reset")
 

@@ -10,18 +10,19 @@
 # =============================================================================
 models:
   # === Claude 4.5 Series (Latest - Nov 2025) ===
-  claude-4.5-opus:
-    model_id: "anthropic/claude-4.5-opus-20251124"
-    name: "Claude 4.5 Opus"
-    provider: "anthropic"
-    tier: "flagship"
-    release: "2025-11"
-    generation: 4.5
-    temperature: 0.7
-    max_tokens: 4000
-    input_cost: 0.015
-    output_cost: 0.075
-    tool_calling: true
+  # COMMENTED OUT - Expensive ($3.38/game), ranked #17, poor value
+  # claude-4.5-opus:
+  #   model_id: "anthropic/claude-4.5-opus-20251124"
+  #   name: "Claude 4.5 Opus"
+  #   provider: "anthropic"
+  #   tier: "flagship"
+  #   release: "2025-11"
+  #   generation: 4.5
+  #   temperature: 0.7
+  #   max_tokens: 4000
+  #   input_cost: 0.015
+  #   output_cost: 0.075
+  #   tool_calling: true
 
   claude-4.5-sonnet:
     model_id: "anthropic/claude-4.5-sonnet-20250929"
@@ -63,18 +64,19 @@ models:
     output_cost: 0.015
     tool_calling: true
 
-  claude-4-opus:
-    model_id: "anthropic/claude-4-opus-20250522"
-    name: "Claude 4 Opus"
-    provider: "anthropic"
-    tier: "flagship"
-    release: "2025-05"
-    generation: 4.0
-    temperature: 0.7
-    max_tokens: 4000
-    input_cost: 0.015
-    output_cost: 0.075
-    tool_calling: true
+  # COMMENTED OUT - Expensive ($3.38/game), ranked #21, poor value
+  # claude-4-opus:
+  #   model_id: "anthropic/claude-4-opus-20250522"
+  #   name: "Claude 4 Opus"
+  #   provider: "anthropic"
+  #   tier: "flagship"
+  #   release: "2025-05"
+  #   generation: 4.0
+  #   temperature: 0.7
+  #   max_tokens: 4000
+  #   input_cost: 0.015
+  #   output_cost: 0.075
+  #   tool_calling: true
 
   # === Claude 3.7 Series (Feb 2025) ===
   claude-3.7-sonnet:
@@ -131,18 +133,19 @@ models:
     tool_calling: true
 
   # === Claude 3 Series (2024) ===
-  claude-3-opus:
-    model_id: "anthropic/claude-3-opus"
-    name: "Claude 3 Opus"
-    provider: "anthropic"
-    tier: "legacy"
-    release: "2024-03"
-    generation: 3.0
-    temperature: 0.7
-    max_tokens: 4000
-    input_cost: 0.015
-    output_cost: 0.075
-    tool_calling: true
+  # COMMENTED OUT - Expensive ($3.38/game), ranked #45, worst value
+  # claude-3-opus:
+  #   model_id: "anthropic/claude-3-opus"
+  #   name: "Claude 3 Opus"
+  #   provider: "anthropic"
+  #   tier: "legacy"
+  #   release: "2024-03"
+  #   generation: 3.0
+  #   temperature: 0.7
+  #   max_tokens: 4000
+  #   input_cost: 0.015
+  #   output_cost: 0.075
+  #   tool_calling: true
 
   claude-3-haiku:
     model_id: "anthropic/claude-3-haiku"
@@ -160,47 +163,50 @@ models:
 # =============================================================================
 # OPENAI - GPT Family (Evolution: 4o → 4.1 → 5 → 5.1 → 5.2)
 # =============================================================================
+  # COMMENTED OUT - Expensive ($1.75/game), ranked #11, poor value
   # === GPT-5.2 Series (Latest - Dec 2025) ===
-  gpt-5.2:
-    model_id: "openai/gpt-5.2-20251211"
-    name: "GPT-5.2"
-    provider: "openai"
-    tier: "flagship"
-    release: "2025-12"
-    generation: 5.2
-    temperature: 0.7
-    max_tokens: 4000
-    input_cost: 0.010
-    output_cost: 0.030
-    tool_calling: true
+  # gpt-5.2:
+  #   model_id: "openai/gpt-5.2-20251211"
+  #   name: "GPT-5.2"
+  #   provider: "openai"
+  #   tier: "flagship"
+  #   release: "2025-12"
+  #   generation: 5.2
+  #   temperature: 0.7
+  #   max_tokens: 4000
+  #   input_cost: 0.010
+  #   output_cost: 0.030
+  #   tool_calling: true
 
+  # COMMENTED OUT - Expensive ($1.40/game), ranked #15, poor value
   # === GPT-5.1 Series (Nov 2025) ===
-  gpt-5.1:
-    model_id: "openai/gpt-5.1-20251113"
-    name: "GPT-5.1"
-    provider: "openai"
-    tier: "flagship"
-    release: "2025-11"
-    generation: 5.1
-    temperature: 0.7
-    max_tokens: 4000
-    input_cost: 0.008
-    output_cost: 0.024
-    tool_calling: true
+  # gpt-5.1:
+  #   model_id: "openai/gpt-5.1-20251113"
+  #   name: "GPT-5.1"
+  #   provider: "openai"
+  #   tier: "flagship"
+  #   release: "2025-11"
+  #   generation: 5.1
+  #   temperature: 0.7
+  #   max_tokens: 4000
+  #   input_cost: 0.008
+  #   output_cost: 0.024
+  #   tool_calling: true
 
+  # COMMENTED OUT - Expensive ($1.05/game), ranked #26, poor value
   # === GPT-5 Series (Aug 2025) ===
-  gpt-5:
-    model_id: "openai/gpt-5-2025-08-07"
-    name: "GPT-5"
-    provider: "openai"
-    tier: "flagship"
-    release: "2025-08"
-    generation: 5.0
-    temperature: 0.7
-    max_tokens: 4000
-    input_cost: 0.006
-    output_cost: 0.018
-    tool_calling: true
+  # gpt-5:
+  #   model_id: "openai/gpt-5-2025-08-07"
+  #   name: "GPT-5"
+  #   provider: "openai"
+  #   tier: "flagship"
+  #   release: "2025-08"
+  #   generation: 5.0
+  #   temperature: 0.7
+  #   max_tokens: 4000
+  #   input_cost: 0.006
+  #   output_cost: 0.018
+  #   tool_calling: true
 
   gpt-5-mini:
     model_id: "openai/gpt-5-mini-2025-08-07"

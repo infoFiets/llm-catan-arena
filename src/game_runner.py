@@ -6,6 +6,8 @@ Supports mixed-mode games where MCP and Text players compete together.
 """
 
 import logging
+import uuid
+from datetime import datetime
 from typing import List, Dict, Any, Tuple, Optional
 from pathlib import Path
 
@@ -401,7 +403,8 @@ class CatanGameRunner:
         if len(player_specs) != 4:
             raise ValueError("Exactly 4 players required for Catan")
 
-        # Create session
+        # Create session with unique ID (includes UUID to prevent collision with parallel games)
+        unique_session_id = f"Settlers_of_Catan_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
         session_id = self.logger.start_session(
             game_name="Settlers of Catan",
             players=[f"{spec}:{color}" for spec, color in zip(player_specs, COLORS)],
@@ -409,7 +412,8 @@ class CatanGameRunner:
                 "player_specs": player_specs,
                 "max_turns": self.config["game"]["max_turns"],
                 "victory_points": self.config["game"]["victory_points"]
-            }
+            },
+            session_id=unique_session_id
         )
 
         self.log.info(f"Starting game {session_id}")

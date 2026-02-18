@@ -57,24 +57,42 @@ def analyze_tournament(ratings_data: dict, min_games: int = 5) -> dict:
     games_per_model = defaultdict(int)
     for game in history:
         for player in game.get("players", []):
-            model_key = player.get("model_key", "")
+            # Players are stored as strings like "gemini-3-pro-text"
+            model_key = player if isinstance(player, str) else player.get("model_key", "")
             if model_key:
                 games_per_model[model_key] += 1
 
     # Count pair meetings
     pair_counts = defaultdict(int)
     for game in history:
-        players = [p.get("model_key", "") for p in game.get("players", [])]
+        raw_players = game.get("players", [])
+        # Players are stored as strings like "gemini-3-pro-text"
+        players = [p if isinstance(p, str) else p.get("model_key", "") for p in raw_players]
         players = [p for p in players if p]  # Filter empty
         for pair in combinations(players, 2):
             pair_counts[tuple(sorted(pair))] += 1
 
+    # Get game counts from ratings data
+    game_counts = ratings_data.get("game_counts", {})
+
     # Calculate confidence intervals
     model_stats = []
     for model, data in ratings.items():
-        elo = data.get("elo", 1500)
-        games = data.get("games", 0)
-        wins = data.get("wins", 0)
+        # Handle both formats: direct float or dict with "elo" key
+        if isinstance(data, (int, float)):
+            elo = data
+        else:
+            elo = data.get("elo", 1500)
+
+        games = game_counts.get(model, 0)
+
+        # Count wins from history
+        wins = sum(
+            1 for game in history
+            if model in game.get("placements", {})
+            and game["placements"][model] == 1
+        )
+
         ci_low, ci_high = calculate_confidence_interval(games, elo)
 
         model_stats.append({

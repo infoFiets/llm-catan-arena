@@ -7,6 +7,7 @@ making it easy to run the tournament in chunks.
 """
 
 import argparse
+import signal
 import subprocess
 import sys
 import time
@@ -17,15 +18,18 @@ from threading import Lock
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scripts.generate_matchups import load_models, generate_balanced_matchups
+from scripts.generate_matchups import load_models, generate_balanced_matchups, load_existing_history
 
 # Lock for thread-safe printing
 print_lock = Lock()
 
 
-def run_single_game(game_num: int, total_games: int, matchup: list[str], config: str) -> dict:
+def run_single_game(game_num: int, total_games: int, matchup: list[str], config: str, timeout: int = 9000) -> dict:
     """Run a single game and return the result."""
     models_str = " vs ".join(matchup)
+
+    with print_lock:
+        print(f"[Starting] Game {game_num}: {models_str}", flush=True)
 
     cmd = [
         "python", "scripts/run_tournament.py",
@@ -39,38 +43,69 @@ def run_single_game(game_num: int, total_games: int, matchup: list[str], config:
     start_time = time.time()
 
     try:
-        result = subprocess.run(
+        # Use Popen for more control over the process
+        process = subprocess.Popen(
             cmd,
-            capture_output=True,
-            text=True,
-            timeout=1800  # 30 minute timeout per game
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
-        elapsed = time.time() - start_time
 
-        if result.returncode == 0:
-            return {
-                "game_num": game_num,
-                "matchup": models_str,
-                "status": "success",
-                "elapsed": elapsed,
-                "output": result.stdout[-500:] if result.stdout else ""  # Last 500 chars
-            }
-        else:
-            return {
-                "game_num": game_num,
-                "matchup": models_str,
-                "status": "error",
-                "elapsed": elapsed,
-                "error": result.stderr[-500:] if result.stderr else "Unknown error"
-            }
-    except subprocess.TimeoutExpired:
-        return {
-            "game_num": game_num,
-            "matchup": models_str,
-            "status": "timeout",
-            "elapsed": 1800,
-            "error": "Game timed out after 30 minutes"
-        }
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+            elapsed = time.time() - start_time
+
+            if process.returncode == 0:
+                return {
+                    "game_num": game_num,
+                    "matchup": models_str,
+                    "status": "success",
+                    "elapsed": elapsed,
+                    "output": stdout[-500:] if stdout else ""
+                }
+            else:
+                return {
+                    "game_num": game_num,
+                    "matchup": models_str,
+                    "status": "error",
+                    "elapsed": elapsed,
+                    "error": stderr[-500:] if stderr else "Unknown error"
+                }
+
+        except subprocess.TimeoutExpired:
+            # Send SIGINT for graceful shutdown (like Ctrl+C)
+            # This allows the game to adjudicate based on current VP
+            with print_lock:
+                print(f"[Timeout] Game {game_num}: Sending graceful shutdown signal...", flush=True)
+
+            process.send_signal(signal.SIGINT)
+
+            try:
+                # Wait up to 60 seconds for graceful shutdown
+                stdout, stderr = process.communicate(timeout=60)
+                elapsed = time.time() - start_time
+
+                return {
+                    "game_num": game_num,
+                    "matchup": models_str,
+                    "status": "timeout_graceful",
+                    "elapsed": elapsed,
+                    "output": f"Game adjudicated after {timeout}s timeout"
+                }
+            except subprocess.TimeoutExpired:
+                # Force kill if graceful shutdown fails
+                process.kill()
+                process.wait()
+                elapsed = time.time() - start_time
+
+                return {
+                    "game_num": game_num,
+                    "matchup": models_str,
+                    "status": "timeout_killed",
+                    "elapsed": elapsed,
+                    "error": f"Game force-killed after {timeout}s + 60s grace period"
+                }
+
     except Exception as e:
         return {
             "game_num": game_num,
@@ -87,7 +122,9 @@ def run_batch(
     parallel: int,
     seed: int = None,
     dry_run: bool = False,
-    models: list[str] = None
+    models: list[str] = None,
+    timeout: int = 7200,
+    ratings_file: str = "data/elo_ratings.json"
 ):
     """Run a batch of tournament games in parallel."""
     # Load models from config
@@ -97,11 +134,23 @@ def run_batch(
         config_path = Path(__file__).parent.parent / config
         model_list = load_models(config_path)
 
-    print(f"Generating {num_games} balanced matchups from {len(model_list)} models...")
-    print(f"Running {parallel} games in parallel\n")
+    # Load existing game history for smarter matchup generation
+    ratings_path = Path(__file__).parent.parent / ratings_file
+    existing_games, existing_pairs = load_existing_history(ratings_path)
 
-    # Generate matchups
-    matchups = generate_balanced_matchups(model_list, num_games, seed)
+    if existing_games:
+        total_existing = sum(existing_games.values()) // 4
+        print(f"Found {total_existing} existing games in history - will prioritize underplayed models/pairs")
+
+    print(f"Generating {num_games} balanced matchups from {len(model_list)} models...")
+    print(f"Running {parallel} games in parallel (timeout: {timeout//60} min per game)\n")
+
+    # Generate matchups (considering existing history)
+    matchups = generate_balanced_matchups(
+        model_list, num_games, seed,
+        existing_games_per_model=existing_games,
+        existing_pair_counts=existing_pairs
+    )
 
     if dry_run:
         print("DRY RUN - would run these matchups:\n")
@@ -124,7 +173,7 @@ def run_batch(
         with ThreadPoolExecutor(max_workers=parallel) as executor:
             # Submit all games
             futures = {
-                executor.submit(run_single_game, i, num_games, matchup, config): i
+                executor.submit(run_single_game, i, num_games, matchup, config, timeout): i
                 for i, matchup in enumerate(matchups, 1)
             }
 
@@ -137,6 +186,9 @@ def run_batch(
                     if result["status"] == "success":
                         successful += 1
                         print(f"[{completed}/{num_games}] ✓ Game {result['game_num']}: {result['matchup']} ({result['elapsed']:.1f}s)")
+                    elif result["status"] == "timeout_graceful":
+                        successful += 1  # Still counts as success since game was adjudicated
+                        print(f"[{completed}/{num_games}] ⏱ Game {result['game_num']}: {result['matchup']} ({result['elapsed']:.1f}s) - adjudicated on timeout")
                     else:
                         failed += 1
                         print(f"[{completed}/{num_games}] ✗ Game {result['game_num']}: {result['matchup']} - {result['status']}")
@@ -166,10 +218,12 @@ def main():
     parser = argparse.ArgumentParser(description="Run a batch of tournament games in parallel")
     parser.add_argument("--config", default="config_full_tournament.yaml", help="Config file")
     parser.add_argument("--games", type=int, default=10, help="Number of games to run")
-    parser.add_argument("--parallel", type=int, default=10, help="Number of games to run simultaneously")
+    parser.add_argument("--parallel", type=int, default=25, help="Number of games to run simultaneously")
+    parser.add_argument("--timeout", type=int, default=9000, help="Timeout per game in seconds (default: 9000 = 2.5 hours)")
     parser.add_argument("--seed", type=int, help="Random seed for reproducible matchups")
     parser.add_argument("--dry-run", action="store_true", help="Print matchups without running")
     parser.add_argument("--models", nargs="+", help="Specific models to use (overrides config)")
+    parser.add_argument("--ratings-file", default="data/elo_ratings.json", help="Elo ratings file for history")
 
     args = parser.parse_args()
 
@@ -179,7 +233,9 @@ def main():
         parallel=args.parallel,
         seed=args.seed,
         dry_run=args.dry_run,
-        models=args.models
+        models=args.models,
+        timeout=args.timeout,
+        ratings_file=args.ratings_file
     )
 
 

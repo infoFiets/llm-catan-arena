@@ -44,6 +44,11 @@ src/
 
 scripts/
 ├── run_tournament.py        # Main entry point (--mode text|mcp)
+├── run_batch.py             # Run parallel batches with balanced matchups
+├── generate_matchups.py     # Generate balanced 4-player matchups
+├── tournament_stats.py      # Tournament progress and statistics
+├── rebuild_elo.py           # Rebuild Elo from game files
+├── elo_ratings.py           # CLI for viewing/managing Elo ratings
 ├── compare_modes.py         # Text vs MCP comparison tool
 ├── analyze_token_efficiency.py  # Token format analysis
 └── analyze.py               # Game analysis scripts
@@ -68,8 +73,15 @@ scripts/
 - Mode and format comparison tools (`compare_modes.py`)
 
 ### What's NOT Implemented Yet
-- **TOON format validation** - Need to verify TOON parsing works for all models
-- **Parallel game execution** - Currently runs games sequentially
+- **MCP mode for all models** - Currently only Claude has full MCP support
+
+### Recent Additions (Feb 2026)
+- **Parallel game execution** - `run_batch.py` runs up to 50 games simultaneously
+- **Balanced matchup generation** - `generate_matchups.py` ensures even coverage
+- **Tournament statistics** - `tournament_stats.py` with confidence intervals
+- **Elo rebuild from game files** - `rebuild_elo.py` recovers from data issues
+- **File locking for Elo** - Prevents race conditions in parallel execution
+- **Unique session IDs** - Includes UUID to prevent file collisions
 
 ## Elo Rating System
 
@@ -260,7 +272,101 @@ python scripts/run_tournament.py --single-game claude-mcp gpt5-mcp gemini-mcp de
 
 **Elo tracking:** Each model+mode combination is tracked separately (e.g., `claude-mcp` vs `claude-text`).
 
+## Parallel Tournament Execution
+
+The arena supports running many games in parallel for faster benchmarking.
+
+### Key Scripts
+
+```bash
+# Run a batch of games with balanced matchups
+python scripts/run_batch.py --config config_full_tournament.yaml --games 50 --parallel 25
+
+# Generate matchups without running (dry run)
+python scripts/run_batch.py --games 50 --dry-run
+
+# Check tournament progress and statistics
+python scripts/tournament_stats.py
+
+# Rebuild Elo from game files (if data issues occur)
+python scripts/rebuild_elo.py
+
+# Generate matchups manually
+python scripts/generate_matchups.py --games 50 --format list --stats
+```
+
+### Full Tournament Config
+
+`config_full_tournament.yaml` contains **48 models** from all major providers:
+- Anthropic: Claude 3, 3.5, 3.7, 4, 4.5 (Opus, Sonnet, Haiku)
+- OpenAI: GPT-4o, 4.1, 5, 5.1, 5.2 (and mini/nano variants)
+- Google: Gemini 2.0, 2.5, 3 (Pro and Flash)
+- Meta: Llama 3, 3.1, 3.3, 4 (various sizes)
+- Mistral: Large, Medium, Small, Mixtral
+- DeepSeek: V3.1, V3.2, R1
+- xAI: Grok 3, 4, 4.1
+- Alibaba: Qwen 2.5, 3, 3-Max
+
+### Tournament Math (48 models)
+
+| Metric | Value |
+|--------|-------|
+| Unique model pairs | 1,128 |
+| Min games for 1x pair coverage | ~188 |
+| Target games per model | 20-30 |
+| Recommended total games | 200+ |
+
+### Matchup Generation
+
+The `generate_matchups.py` script:
+- Reads existing game history from Elo file
+- Prioritizes models with fewer games
+- Prioritizes pairs that haven't met
+- Produces balanced 4-player matchups
+
 ## Known Limitations
 
-1. Reasoning models (o1, DeepSeek R1) may have different behavior due to extended thinking
+1. **Reasoning models are SLOW** - `*-thinking` variants and `deepseek-r1` can take 1-2 hours per game
 2. Some smaller models may struggle with complex game state parsing
+3. Budget models often stall at end-game (don't close out wins efficiently)
+
+## Lessons Learned / Gotchas
+
+### Parallel Execution Race Conditions
+
+**Problem:** With many parallel games, race conditions can occur:
+- Multiple games writing to `elo_ratings.json` overwrite each other
+- Games starting in same second get same session_id, overwriting files
+
+**Solution (implemented):**
+- Elo system uses file locking (`fcntl.flock`) with merge-on-save
+- Session IDs include UUID: `Settlers_of_Catan_20260201_215752_a1b2c3d4`
+
+### Model Speed Variations
+
+Games take 10-90+ minutes depending on models:
+- **Fast** (10-20 min): gemini-flash, haiku, gpt-mini, llama-8b, mistral-small
+- **Medium** (20-40 min): sonnet, gpt-4o, gemini-pro, llama-70b
+- **Slow** (40-90+ min): opus, gpt-5, grok-4.1, deepseek-r1, *-thinking models
+
+### Turn Limits
+
+- `max_turns: 200` in config (~50 rounds)
+- If turn limit reached, highest VP wins (marked as "TURN_LIMIT")
+- Reasoning models often hit turn limits due to slow play
+
+## Test Coverage
+
+62 tests covering:
+- `test_game_wrapper.py` - Game state serialization
+- `test_action_mapper.py` - Action ID generation
+- `test_mcp_server.py` - MCP server functionality
+- `test_mcp_players.py` - MCP player integration
+- `test_elo.py` - Elo rating system
+
+### Tests Needed (see `tests/TEST_IDEAS.md`)
+
+- `test_elo_concurrency.py` - Parallel Elo updates, file locking
+- `test_session_id.py` - Session ID uniqueness
+- `test_batch_execution.py` - Batch parallel execution
+- `test_integration.py` - End-to-end tournament flow
