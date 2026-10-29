@@ -22,7 +22,7 @@ class GPTPlayer(BaseLLMPlayer):
         model_config: dict,
         session_id: str = None,
         logger: GameResultLogger = None,
-        prompt_format: str = "json",
+        prompt_format: str = "toon",
         mode: str = "text"
     ):
         """

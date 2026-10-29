@@ -170,7 +170,7 @@ python scripts/run_full_tournament.py --all --quick    # Quick test run
 python scripts/generate_leaderboard.py --output docs/leaderboard
 
 # Run tests
-./venv/bin/python -m pytest tests/ -v
+./.venv/bin/python -m pytest tests/ -v
 
 # Analyze token efficiency
 python scripts/analyze_token_efficiency.py --show-examples

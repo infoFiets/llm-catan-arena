@@ -58,7 +58,7 @@ class CatanGameRunner:
     - Statistics tracking
     """
 
-    def __init__(self, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json"):
+    def __init__(self, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "toon"):
         """
         Initialize game runner.
 
