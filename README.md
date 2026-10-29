@@ -156,6 +156,18 @@ python scripts/elo_ratings.py --history 10
 
 Ratings are automatically updated after each game and persisted to `data/elo_ratings.json`.
 
+### Export for the website
+
+```bash
+python scripts/export_site_json.py --out catan.json
+```
+
+Writes the JSON behind [mcgrathtrading.com/benchmarks](https://mcgrathtrading.com/benchmarks):
+per model the Elo, games, wins, cost (summed per player from the per-move costs in
+`data/games/`), cost per win, tokens per move, API errors and the exact OpenRouter id from
+`config_full_tournament.yaml`, plus the date range, the source commit and a method paragraph.
+Only games in the Elo history count. `--data-dir` points it at another checkout's `data/`.
+
 ## Configuration
 
 Edit `config.yaml` to customize:
