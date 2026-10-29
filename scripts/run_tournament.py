@@ -31,7 +31,7 @@ from src.elo import EloRating
 load_dotenv()
 
 
-def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json", parallel: int = 1):
+def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "toon", parallel: int = 1):
     """
     Run a full tournament using configuration file.
 
@@ -66,7 +66,7 @@ def run_tournament(num_games: int = None, config_path: str = "config.yaml", mode
     print(elo.format_leaderboard())
 
 
-def run_single_game(players: list, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "json", num_games: int = 1, parallel: int = 1):
+def run_single_game(players: list, config_path: str = "config.yaml", mode: str = "text", prompt_format: str = "toon", num_games: int = 1, parallel: int = 1):
     """
     Run one or more games with specified players.
 
@@ -223,7 +223,7 @@ def main():
     parser.add_argument(
         '--format',
         choices=['json', 'json-minified', 'toon'],
-        default='json',
+        default='toon',
         help='Prompt format: json (standard), json-minified (~33%% token reduction), toon (~53%% token reduction)'
     )
 

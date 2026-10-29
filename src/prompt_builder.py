@@ -21,7 +21,7 @@ PromptFormat = Literal["json", "json-minified", "toon"]
 class CatanPromptBuilder:
     """Builds prompts for LLM players in Settlers of Catan."""
 
-    def __init__(self, prompt_format: PromptFormat = "json"):
+    def __init__(self, prompt_format: PromptFormat = "toon"):
         """
         Initialize the prompt builder with PromptFormatter.
 

@@ -127,21 +127,21 @@ def get_mode_comparison_config(quick: bool = False) -> Dict:
                 "name": "claude_mode_comparison",
                 "matchup": ["claude-mcp", "claude-text", "claude-mcp", "claude-text"],
                 "mode": "text",  # Default, overridden by suffix
-                "format": "json",
+                "format": "toon",
                 "games": games
             },
             {
                 "name": "gpt5_mode_comparison",
                 "matchup": ["gpt5-mcp", "gpt5-text", "gpt5-mcp", "gpt5-text"],
                 "mode": "text",
-                "format": "json",
+                "format": "toon",
                 "games": games
             },
             {
                 "name": "cross_model_mode",
                 "matchup": ["claude-mcp", "claude-text", "gpt5-mcp", "gpt5-text"],
                 "mode": "text",
-                "format": "json",
+                "format": "toon",
                 "games": games
             },
         ]
@@ -161,7 +161,7 @@ def get_ranking_config(quick: bool = False) -> Dict:
         "name": "mixed_all",
         "matchup": ["claude", "gpt5", "gemini", "haiku"],
         "mode": "text",
-        "format": "json",
+        "format": "toon",
         "games": games_per_matchup * 2  # More games for main comparison
     })
 
@@ -172,7 +172,7 @@ def get_ranking_config(quick: bool = False) -> Dict:
                 "name": f"{m1}_vs_{m2}",
                 "matchup": [m1, m1, m2, m2],
                 "mode": "text",
-                "format": "json",
+                "format": "toon",
                 "games": games_per_matchup
             })
 
@@ -197,7 +197,7 @@ def get_evolution_config(quick: bool = False) -> Dict:
                 "name": "gpt_evolution",
                 "matchup": ["gpt4o", "gpt5", "gpt5-mini", "gpt4o"],
                 "mode": "text",
-                "format": "json",
+                "format": "toon",
                 "games": games,
                 "optional": True  # Skip if models not configured
             },
@@ -206,7 +206,7 @@ def get_evolution_config(quick: bool = False) -> Dict:
                 "name": "claude_tiers",
                 "matchup": ["claude-opus", "claude", "haiku", "haiku"],
                 "mode": "text",
-                "format": "json",
+                "format": "toon",
                 "games": games
             },
             # Gemini evolution
@@ -214,7 +214,7 @@ def get_evolution_config(quick: bool = False) -> Dict:
                 "name": "gemini_evolution",
                 "matchup": ["gemini-3", "gemini", "gemini-flash", "gemini-flash"],
                 "mode": "text",
-                "format": "json",
+                "format": "toon",
                 "games": games,
                 "optional": True
             },
@@ -223,7 +223,7 @@ def get_evolution_config(quick: bool = False) -> Dict:
                 "name": "open_source_battle",
                 "matchup": ["llama4", "deepseek", "llama4", "deepseek"],
                 "mode": "text",
-                "format": "json",
+                "format": "toon",
                 "games": games,
                 "optional": True
             },
@@ -288,7 +288,7 @@ def run_phase(phase_config: Dict, output_dir: Path) -> List[Dict]:
         exp_name = exp["name"]
         matchup = exp["matchup"]
         mode = exp.get("mode", "text")
-        fmt = exp.get("format", "json")
+        fmt = exp.get("format", "toon")
         games = exp.get("games", 10)
         optional = exp.get("optional", False)
 

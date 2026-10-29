@@ -315,7 +315,7 @@ We've analyzed different data serialization formats and found you can reduce tok
 
 | Format | Token Reduction | Savings/Game (Haiku) | Savings/Game (GPT-4) |
 |--------|----------------|---------------------|---------------------|
-| **TOON-Style** | **53%** ⭐ | **$0.06** | **$0.20** |
+| **TOON-Style (default)** | **53%** ⭐ | **$0.06** | **$0.20** |
 | Ultra-Compact | 75% | $0.08 | $0.25 |
 | JSON (Minified) | 33% | $0.03 | $0.10 |
 
@@ -346,7 +346,6 @@ Costs vary based on game length and decision complexity.
 - [ ] Support for custom game variants
 - [ ] MCP mode for GPT models (function calling)
 - [ ] MCP mode for Gemini models (tool use)
-- [ ] TOON-style prompt formatting for token efficiency
 - [ ] Mixed-mode games (MCP vs Text players in same game)
 
 ## Contributing

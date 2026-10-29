@@ -71,7 +71,7 @@ class BaseLLMPlayer(Player, ABC):
         session_id: str = None,
         logger: GameResultLogger = None,
         is_bot: bool = True,
-        prompt_format: str = "json",
+        prompt_format: str = "toon",
         max_retries: int = DEFAULT_MAX_RETRIES,
         retry_delay: float = DEFAULT_RETRY_DELAY,
         mode: str = "text"
